@@ -1,0 +1,30 @@
+.artlist-youtube-mp3-download {
+  border-radius: 6px !important;
+  outline: 2px solid #f43f5e !important;
+  outline-offset: 3px !important;
+  position: relative;
+}
+
+button[aria-label="download" i],
+[data-testid="Tooltip" i][aria-label="Download" i] button {
+  border-radius: 6px !important;
+  outline: 2px solid #f43f5e !important;
+  outline-offset: 3px !important;
+}
+
+.artlist-youtube-mp3-download:hover {
+  outline-color: #fb7185 !important;
+}
+
+.artlist-youtube-mp3-download[data-artlist-youtube-mp3-state="loading"] {
+  opacity: 0.65;
+  pointer-events: none;
+}
+
+.artlist-youtube-mp3-download[data-artlist-youtube-mp3-state="done"] {
+  outline-color: #16a34a !important;
+}
+
+.artlist-youtube-mp3-download[data-artlist-youtube-mp3-state="error"] {
+  outline-color: #dc2626 !important;
+}
