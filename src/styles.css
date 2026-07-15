@@ -5,12 +5,6 @@
   position: relative;
 }
 
-button[aria-label="download" i],
-[data-testid="Tooltip" i][aria-label="Download" i] button {
-  border-radius: 6px !important;
-  outline: 2px solid #f43f5e !important;
-  outline-offset: 3px !important;
-}
 
 .artlist-youtube-mp3-download:hover {
   outline-color: #fb7185 !important;

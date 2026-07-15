@@ -17,6 +17,7 @@ const OFFICIAL_DOWNLOAD_SELECTOR = [
 let scanTimer = null;
 let bootstrapScansRemaining = BOOTSTRAP_SCAN_COUNT;
 const pendingRoots = new Set();
+let extensionEnabled = true;
 
 boot();
 
@@ -26,9 +27,30 @@ function boot() {
     return;
   }
 
+  // Load initial extension enabled state
+  chrome.storage.local.get({ enabled: true }, (items) => {
+    extensionEnabled = items.enabled;
+    if (extensionEnabled) {
+      scheduleScan(document);
+      scheduleBootstrapScans();
+    }
+  });
+
+  // Listen for enabled state changes from popup
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area === "local" && changes.enabled !== undefined) {
+      extensionEnabled = changes.enabled.newValue;
+      if (extensionEnabled) {
+        bootstrapScansRemaining = BOOTSTRAP_SCAN_COUNT;
+        scheduleScan(document);
+        scheduleBootstrapScans();
+      } else {
+        removeEnhancements();
+      }
+    }
+  });
+
   document.addEventListener("click", handleDocumentClick, true);
-  scheduleScan(document);
-  scheduleBootstrapScans();
   observePageChanges();
   exposeDebugHelper();
 }
@@ -93,16 +115,46 @@ function flushScanQueue() {
 }
 
 function enhanceDownloadButtons(root = document) {
+  if (!extensionEnabled) {
+    return;
+  }
+
   findOfficialDownloadButtons(root).forEach((button) => {
-    button.classList.add(ENHANCED_DOWNLOAD_CLASS);
-    button.setAttribute(DOWNLOAD_ATTR, "true");
-    button.title = "Buscar esta cancion en YouTube y abrir descarga MP3";
+    if (isSongDownloadButton(button)) {
+      if (!button.hasAttribute(DOWNLOAD_ATTR)) {
+        button.setAttribute("data-original-title", button.title || "");
+      }
+      button.classList.add(ENHANCED_DOWNLOAD_CLASS);
+      button.setAttribute(DOWNLOAD_ATTR, "true");
+      button.title = "Buscar esta cancion en YouTube y abrir descarga MP3";
+    }
+  });
+}
+
+function removeEnhancements() {
+  document.querySelectorAll(`.${ENHANCED_DOWNLOAD_CLASS}, [${DOWNLOAD_ATTR}]`).forEach((button) => {
+    button.classList.remove(ENHANCED_DOWNLOAD_CLASS);
+    button.classList.remove(ACTIVE_DOWNLOAD_CLASS);
+    button.removeAttribute(DOWNLOAD_ATTR);
+    delete button.dataset.artlistYoutubeMp3State;
+    if (button.hasAttribute("data-original-title")) {
+      button.title = button.getAttribute("data-original-title") || "";
+      button.removeAttribute("data-original-title");
+    }
   });
 }
 
 function handleDocumentClick(event) {
+  if (!extensionEnabled) {
+    return;
+  }
+
   const downloadButton = findOfficialDownloadButtonFromTarget(event.target);
   if (!downloadButton) {
+    return;
+  }
+
+  if (!downloadButton.classList.contains(ENHANCED_DOWNLOAD_CLASS) && !isSongDownloadButton(downloadButton)) {
     return;
   }
 
@@ -228,8 +280,7 @@ function extractTrackInfo(row, downloadButton) {
 }
 
 function isSongRow(element) {
-  const rect = element.getBoundingClientRect();
-  if (rect.width < 420 || rect.height < 32 || rect.height > 220) {
+  if (element === document.body || element === document.documentElement) {
     return false;
   }
 
@@ -237,6 +288,26 @@ function isSongRow(element) {
   const hasDownload = Boolean(element.querySelector(OFFICIAL_DOWNLOAD_SELECTOR));
 
   return hasSongLink && hasDownload;
+}
+
+function isSongDownloadButton(button) {
+  if (!button) {
+    return false;
+  }
+
+  // Check if it resides inside a song row
+  const row = findTrackContainer(button);
+  if (row) {
+    return true;
+  }
+
+  // Fallback: Check if the page URL represents a song page
+  const path = window.location.pathname;
+  if (path.includes("/song/") || path.includes("/royalty-free-music/song/")) {
+    return true;
+  }
+
+  return false;
 }
 
 function getTrackLabels(row, downloadButton) {
