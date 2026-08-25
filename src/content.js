@@ -51,6 +51,7 @@ function boot() {
   });
 
   document.addEventListener("click", handleDocumentClick, true);
+  document.addEventListener("mouseover", handleDocumentMouseOver, true);
   observePageChanges();
   exposeDebugHelper();
 }
@@ -114,6 +115,33 @@ function flushScanQueue() {
   }
 }
 
+function formatTooltipTitle(track) {
+  if (track && (track.title || track.artist)) {
+    const parts = [track.title, track.artist ? `(${track.artist})` : ""].filter(Boolean).join(" ");
+    return `Buscar "${parts}" en YouTube y abrir descarga MP3`;
+  }
+  return "Buscar esta cancion en YouTube y abrir descarga MP3";
+}
+
+function handleDocumentMouseOver(event) {
+  if (!extensionEnabled) {
+    return;
+  }
+
+  const downloadButton = findOfficialDownloadButtonFromTarget(event.target);
+  if (!downloadButton || !downloadButton.hasAttribute(DOWNLOAD_ATTR)) {
+    return;
+  }
+
+  const row = findTrackContainer(downloadButton);
+  if (row) {
+    const track = extractTrackInfo(row, downloadButton);
+    if (track.title || track.artist) {
+      downloadButton.title = formatTooltipTitle(track);
+    }
+  }
+}
+
 function enhanceDownloadButtons(root = document) {
   if (!extensionEnabled) {
     return;
@@ -126,7 +154,10 @@ function enhanceDownloadButtons(root = document) {
       }
       button.classList.add(ENHANCED_DOWNLOAD_CLASS);
       button.setAttribute(DOWNLOAD_ATTR, "true");
-      button.title = "Buscar esta cancion en YouTube y abrir descarga MP3";
+      
+      const row = findTrackContainer(button);
+      const track = row ? extractTrackInfo(row, button) : null;
+      button.title = formatTooltipTitle(track);
     }
   });
 }

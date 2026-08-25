@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Artlist Downloader",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "description": "Replaces Artlist track downloads with a YouTube MP3 lookup using y2mate.",
   "permissions": ["tabs", "storage"],
   "host_permissions": [
