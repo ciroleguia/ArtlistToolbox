@@ -24,13 +24,33 @@
         </label>
       </div>
 
+      <section class="settings-block">
+        <div class="settings-head">
+          <span>Download flow</span>
+        </div>
+        <div class="mode-group" id="flow-modes" role="radiogroup" aria-label="Download flow">
+          <button type="button" class="mode-option" data-mode="auto" role="radio">Auto</button>
+          <button type="button" class="mode-option" data-mode="ask" role="radio">Ask me</button>
+          <button type="button" class="mode-option" data-mode="search" role="radio">Search only</button>
+        </div>
+        <small id="flow-hint" class="settings-hint"></small>
+      </section>
+
+      <section class="settings-block">
+        <div class="settings-head">
+          <span>Match threshold</span>
+          <small id="threshold-value">42%</small>
+        </div>
+        <input type="range" id="min-score" min="30" max="75" step="5" value="42" aria-label="Match threshold">
+      </section>
+
       <div class="settings-row">
         <div class="settings-label">
-          <span>Open YouTube search only</span>
-          <small>Skip y2mate and just open the YouTube search.</small>
+          <span>Open in background</span>
+          <small>Don't focus the tab we open.</small>
         </div>
         <label class="switch">
-          <input type="checkbox" id="toggle-search-only">
+          <input type="checkbox" id="toggle-background">
           <span class="slider"></span>
         </label>
       </div>
@@ -39,8 +59,18 @@
         Open Artlist Music
       </button>
 
+      <section class="recent">
+        <div class="recent-head">
+          <span>Recent downloads</span>
+          <button id="clear-recent" type="button">Clear</button>
+        </div>
+        <ul id="recent-list"></ul>
+        <p id="recent-empty">No downloads yet.</p>
+      </section>
+
       <footer class="credits">
         developed by <a href="https://github.com/ciroleguia" target="_blank" rel="noopener">Ciro</a>
+        <span id="version" class="version"></span>
       </footer>
     </main>
     <script src="popup.js"></script>
