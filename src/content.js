@@ -18,6 +18,7 @@ let scanTimer = null;
 let bootstrapScansRemaining = BOOTSTRAP_SCAN_COUNT;
 const pendingRoots = new Set();
 let extensionEnabled = true;
+let searchOnlyEnabled = false;
 
 boot();
 
@@ -28,17 +29,26 @@ function boot() {
   }
 
   // Load initial extension enabled state
-  chrome.storage.local.get({ enabled: true }, (items) => {
+  chrome.storage.local.get({ enabled: true, searchOnly: false }, (items) => {
     extensionEnabled = items.enabled;
+    searchOnlyEnabled = items.searchOnly;
     if (extensionEnabled) {
       scheduleScan(document);
       scheduleBootstrapScans();
     }
   });
 
-  // Listen for enabled state changes from popup
+  // Listen for state changes from popup
   chrome.storage.onChanged.addListener((changes, area) => {
-    if (area === "local" && changes.enabled !== undefined) {
+    if (area !== "local") {
+      return;
+    }
+
+    if (changes.searchOnly !== undefined) {
+      searchOnlyEnabled = changes.searchOnly.newValue;
+    }
+
+    if (changes.enabled !== undefined) {
       extensionEnabled = changes.enabled.newValue;
       if (extensionEnabled) {
         bootstrapScansRemaining = BOOTSTRAP_SCAN_COUNT;
@@ -116,11 +126,12 @@ function flushScanQueue() {
 }
 
 function formatTooltipTitle(track) {
-  if (track && (track.title || track.artist)) {
-    const parts = [track.title, track.artist ? `(${track.artist})` : ""].filter(Boolean).join(" ");
-    return `Buscar "${parts}" en YouTube y abrir descarga MP3`;
-  }
-  return "Buscar esta cancion en YouTube y abrir descarga MP3";
+  const suffix = searchOnlyEnabled ? "en YouTube" : "en YouTube y abrir descarga MP3";
+  const subject =
+    track && (track.title || track.artist)
+      ? `"${[track.title, track.artist ? `(${track.artist})` : ""].filter(Boolean).join(" ")}"`
+      : "esta cancion";
+  return `Buscar ${subject} ${suffix}`;
 }
 
 function handleDocumentMouseOver(event) {
