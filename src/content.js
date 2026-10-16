@@ -1,6 +1,7 @@
 const ENHANCED_DOWNLOAD_CLASS = "artlist-youtube-mp3-download";
 const ACTIVE_DOWNLOAD_CLASS = "artlist-youtube-mp3-download-active";
 const DOWNLOAD_ATTR = "data-artlist-youtube-mp3-download";
+const PICKER_ID = "artlist-y2mate-picker";
 const SCAN_DEBOUNCE_MS = 250;
 const BOOTSTRAP_SCAN_COUNT = 12;
 const MAX_ROOTS_PER_SCAN = 30;
@@ -18,7 +19,8 @@ let scanTimer = null;
 let bootstrapScansRemaining = BOOTSTRAP_SCAN_COUNT;
 const pendingRoots = new Set();
 let extensionEnabled = true;
-let searchOnlyEnabled = false;
+let flowMode = "auto";
+let pickerDismissListeners = null;
 
 boot();
 
@@ -28,10 +30,10 @@ function boot() {
     return;
   }
 
-  // Load initial extension enabled state
-  chrome.storage.local.get({ enabled: true, searchOnly: false }, (items) => {
+  // Load initial extension state
+  chrome.storage.local.get({ enabled: true, flowMode: null, searchOnly: false }, (items) => {
     extensionEnabled = items.enabled;
-    searchOnlyEnabled = items.searchOnly;
+    flowMode = items.flowMode || (items.searchOnly ? "search" : "auto");
     if (extensionEnabled) {
       scheduleScan(document);
       scheduleBootstrapScans();
@@ -44,8 +46,10 @@ function boot() {
       return;
     }
 
-    if (changes.searchOnly !== undefined) {
-      searchOnlyEnabled = changes.searchOnly.newValue;
+    if (changes.flowMode !== undefined) {
+      flowMode = changes.flowMode.newValue || "auto";
+    } else if (changes.searchOnly !== undefined) {
+      flowMode = changes.searchOnly.newValue ? "search" : "auto";
     }
 
     if (changes.enabled !== undefined) {
@@ -126,12 +130,32 @@ function flushScanQueue() {
 }
 
 function formatTooltipTitle(track) {
-  const suffix = searchOnlyEnabled ? "en YouTube" : "en YouTube y abrir descarga MP3";
+  const suffix =
+    flowMode === "search"
+      ? "en YouTube"
+      : flowMode === "ask"
+        ? "en YouTube y elegir el video"
+        : "en YouTube y abrir descarga MP3";
   const subject =
     track && (track.title || track.artist)
       ? `"${[track.title, track.artist ? `(${track.artist})` : ""].filter(Boolean).join(" ")}"`
       : "esta cancion";
   return `Buscar ${subject} ${suffix}`;
+}
+
+function formatResultTooltip(response) {
+  if (response.mode === "search") {
+    return "Abriendo la busqueda de YouTube";
+  }
+
+  const video = response.video;
+  if (!video) {
+    return "Listo";
+  }
+
+  const percent =
+    typeof video.score === "number" ? ` · ${Math.round(video.score * 100)}% de coincidencia` : "";
+  return `Abriendo: ${video.title}${percent}`;
 }
 
 function handleDocumentMouseOver(event) {
@@ -174,6 +198,7 @@ function enhanceDownloadButtons(root = document) {
 }
 
 function removeEnhancements() {
+  closePicker();
   document.querySelectorAll(`.${ENHANCED_DOWNLOAD_CLASS}, [${DOWNLOAD_ATTR}]`).forEach((button) => {
     button.classList.remove(ENHANCED_DOWNLOAD_CLASS);
     button.classList.remove(ACTIVE_DOWNLOAD_CLASS);
@@ -231,7 +256,18 @@ function handleDocumentClick(event) {
         return;
       }
 
+      if (response.mode === "ask" && response.candidates?.length) {
+        markButtonState(downloadButton, "ready");
+        renderCandidatePicker({
+          candidates: response.candidates,
+          searchUrl: response.searchUrl,
+          anchor: downloadButton
+        });
+        return;
+      }
+
       markButtonState(downloadButton, "done");
+      downloadButton.title = formatResultTooltip(response);
       window.setTimeout(() => markButtonState(downloadButton, "ready"), 2200);
     }
   );
@@ -305,11 +341,13 @@ function extractTrackInfo(row, downloadButton) {
     .filter(Boolean)
     .filter(uniqueText)
     .join(" ");
+  const duration = extractTrackDuration(row);
 
   if (title || artists) {
     return {
       title,
-      artist: artists
+      artist: artists,
+      duration
     };
   }
 
@@ -317,8 +355,37 @@ function extractTrackInfo(row, downloadButton) {
 
   return {
     title: labels[0] || "",
-    artist: labels[1] || ""
+    artist: labels[1] || "",
+    duration
   };
+}
+
+function extractTrackDuration(row) {
+  const timeNodes = queryWithinRoot(row, "span, div, p, time")
+    .filter(isVisible)
+    .map((node) => cleanText(node.textContent))
+    .filter((text) => /^\d{1,2}:\d{2}(?::\d{2})?$/.test(text));
+
+  if (timeNodes.length) {
+    return parseTimeLabel(timeNodes[0]);
+  }
+
+  const match = cleanText(row.textContent).match(/\b\d{1,2}:\d{2}\b/);
+  return match ? parseTimeLabel(match[0]) : null;
+}
+
+function parseTimeLabel(label) {
+  const parts = String(label || "")
+    .split(":")
+    .map((part) => Number(part));
+
+  if (!parts.length || parts.some((part) => !Number.isFinite(part))) {
+    return null;
+  }
+
+  return parts.length === 3
+    ? parts[0] * 3600 + parts[1] * 60 + parts[2]
+    : parts[0] * 60 + parts[1];
 }
 
 function isSongRow(element) {
@@ -384,6 +451,166 @@ function getTrackLabels(row, downloadButton) {
 function markButtonState(button, state) {
   button.dataset.artlistYoutubeMp3State = state;
   button.classList.toggle(ACTIVE_DOWNLOAD_CLASS, state === "loading");
+}
+
+function renderCandidatePicker({ candidates, searchUrl, anchor }) {
+  // The overlay can only render in the top frame; inside iframes fall back to the best match.
+  if (window.top !== window) {
+    if (candidates[0]) {
+      openY2mate(candidates[0]);
+    }
+    return;
+  }
+
+  closePicker();
+
+  const picker = document.createElement("div");
+  picker.id = PICKER_ID;
+  picker.className = "artlist-y2mate-picker";
+  picker.setAttribute("role", "dialog");
+  picker.setAttribute("aria-label", "Elegir video de YouTube");
+  picker.addEventListener("click", (event) => event.stopPropagation());
+
+  const heading = document.createElement("p");
+  heading.className = "artlist-y2mate-picker-heading";
+  heading.textContent = "Elegi el video correcto:";
+  picker.append(heading);
+
+  const list = document.createElement("ul");
+  list.className = "artlist-y2mate-picker-list";
+  candidates.forEach((candidate) => list.append(buildCandidateCard(candidate)));
+  picker.append(list);
+
+  const footer = document.createElement("div");
+  footer.className = "artlist-y2mate-picker-footer";
+
+  const searchLink = document.createElement("a");
+  searchLink.href = searchUrl;
+  searchLink.target = "_blank";
+  searchLink.rel = "noopener";
+  searchLink.textContent = "Buscar en YouTube";
+
+  const closeButton = document.createElement("button");
+  closeButton.type = "button";
+  closeButton.className = "artlist-y2mate-picker-close";
+  closeButton.textContent = "Cancelar";
+  closeButton.addEventListener("click", () => closePicker());
+
+  footer.append(searchLink, closeButton);
+  picker.append(footer);
+
+  document.body.append(picker);
+  positionPicker(picker, anchor);
+  bindPickerDismiss();
+}
+
+function buildCandidateCard(candidate) {
+  const item = document.createElement("li");
+
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "artlist-y2mate-candidate";
+  button.addEventListener("click", () => openY2mate(candidate));
+
+  const thumb = document.createElement("img");
+  thumb.alt = "";
+  thumb.loading = "lazy";
+  thumb.src = candidate.thumbnail || "";
+  thumb.addEventListener("error", () => thumb.remove());
+  button.append(thumb);
+
+  const info = document.createElement("span");
+  info.className = "artlist-y2mate-candidate-info";
+
+  const title = document.createElement("span");
+  title.className = "artlist-y2mate-candidate-title";
+  title.textContent = candidate.title || "Video sin titulo";
+
+  const meta = document.createElement("span");
+  meta.className = "artlist-y2mate-candidate-meta";
+  meta.textContent = [
+    candidate.artist,
+    candidate.duration ? formatDuration(candidate.duration) : "",
+    typeof candidate.score === "number" ? `${Math.round(candidate.score * 100)}%` : ""
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
+  info.append(title, meta);
+  button.append(info);
+  item.append(button);
+  return item;
+}
+
+function openY2mate(candidate) {
+  if (!candidate?.videoId) {
+    return;
+  }
+
+  chrome.runtime.sendMessage({
+    type: "ARTLIST_OPEN_Y2MATE",
+    payload: {
+      videoId: candidate.videoId,
+      title: candidate.title || "",
+      artist: candidate.artist || ""
+    }
+  });
+  closePicker();
+}
+
+function positionPicker(picker, anchor) {
+  const margin = 8;
+  const rect = anchor.getBoundingClientRect();
+  const width = picker.offsetWidth;
+  const height = picker.offsetHeight;
+
+  const left = Math.min(
+    Math.max(margin, rect.left),
+    Math.max(margin, window.innerWidth - width - margin)
+  );
+  let top = rect.bottom + margin;
+  if (top + height > window.innerHeight - margin) {
+    top = Math.max(margin, rect.top - height - margin);
+  }
+
+  picker.style.left = `${left}px`;
+  picker.style.top = `${top}px`;
+}
+
+function bindPickerDismiss() {
+  const onKeyDown = (event) => {
+    if (event.key === "Escape") {
+      closePicker();
+    }
+  };
+  const onDocumentClick = (event) => {
+    if (!event.target?.closest?.(`#${PICKER_ID}`)) {
+      closePicker();
+    }
+  };
+
+  document.addEventListener("keydown", onKeyDown, true);
+  document.addEventListener("click", onDocumentClick, true);
+
+  pickerDismissListeners = () => {
+    document.removeEventListener("keydown", onKeyDown, true);
+    document.removeEventListener("click", onDocumentClick, true);
+  };
+}
+
+function closePicker() {
+  document.getElementById(PICKER_ID)?.remove();
+  if (pickerDismissListeners) {
+    pickerDismissListeners();
+    pickerDismissListeners = null;
+  }
+}
+
+function formatDuration(seconds) {
+  const total = Math.max(0, Math.round(seconds));
+  const minutes = Math.floor(total / 60);
+  const remainder = total % 60;
+  return `${minutes}:${String(remainder).padStart(2, "0")}`;
 }
 
 function exposeDebugHelper() {
