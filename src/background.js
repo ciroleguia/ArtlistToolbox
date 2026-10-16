@@ -1,4 +1,4 @@
-const Y2MATE_BASE_URL = "https://v3.y2mate.nu/#";
+const Y2MATE_BASE_URL = "https://y2mate.gs/#";
 const YOUTUBE_SEARCH_URL = "https://www.youtube.com/results?search_query=";
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
@@ -25,6 +25,12 @@ async function handleTrackDownload(track) {
     throw new Error("No pude detectar el nombre de la cancion ni el artista.");
   }
 
+  const { searchOnly } = await chrome.storage.local.get({ searchOnly: false });
+  if (searchOnly) {
+    await openTab(`${YOUTUBE_SEARCH_URL}${encodeURIComponent(buildSearchQuery(normalizedTrack))}`);
+    return { searchOnly: true };
+  }
+
   const candidates = await searchYouTube(normalizedTrack);
   const bestMatch = pickBestMatch(normalizedTrack, candidates);
 
@@ -33,7 +39,7 @@ async function handleTrackDownload(track) {
     throw new Error("No encontre un video suficientemente parecido. Abri la busqueda de YouTube para revisar manualmente.");
   }
 
-  await openTab(`${Y2MATE_BASE_URL}${bestMatch.videoId}`);
+  await openTab(`${Y2MATE_BASE_URL}${bestMatch.videoId}/mp3`);
   return { video: bestMatch };
 }
 

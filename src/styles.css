@@ -1,13 +1,13 @@
 .artlist-youtube-mp3-download {
   border-radius: 6px !important;
-  outline: 2px solid #f43f5e !important;
+  outline: 2px solid #f9db54 !important;
   outline-offset: 3px !important;
   position: relative;
 }
 
 
 .artlist-youtube-mp3-download:hover {
-  outline-color: #fb7185 !important;
+  outline-color: #fbe27a !important;
 }
 
 .artlist-youtube-mp3-download[data-artlist-youtube-mp3-state="loading"] {

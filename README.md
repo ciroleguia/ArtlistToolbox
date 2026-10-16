@@ -10,7 +10,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/Manifest-V3-blue.svg" alt="Manifest V3">
-  <img src="https://img.shields.io/badge/Versi%C3%B3n-0.4.2-brightgreen.svg" alt="Version 0.4.2">
+  <img src="https://img.shields.io/badge/Versi%C3%B3n-0.4.3-brightgreen.svg" alt="Version 0.4.3">
   <img src="https://img.shields.io/badge/Licencia-MIT-orange.svg" alt="Licencia MIT">
   <img src="https://img.shields.io/badge/Chrome-Extension-informational.svg" alt="Chrome Extension">
 </p>
@@ -19,7 +19,7 @@
 
 ## 📖 Descripción
 
-**Artlist Downloader** es una extensión de navegador (Manifest V3) creada para mejorar el flujo de trabajo en [Artlist.io](https://artlist.io). Intercepta y optimiza los botones de descarga de pistas musicales para buscar de forma automática e inteligente la coincidencia más precisa (título y artista) en YouTube y abrir directamente el conversor de descarga en formato MP3.
+**Artlist Downloader** es una extensión de navegador (Manifest V3) creada para mejorar el flujo de trabajo en [Artlist.io](https://artlist.io). Intercepta y optimiza los botones de descarga de pistas musicales para buscar de forma automática e inteligente la coincidencia más precisa (título y artista) en YouTube y abrir directamente el conversor de descarga en formato MP3. También incluye un modo alternativo que se detiene en la búsqueda de YouTube, sin redirigir al conversor.
 
 ---
 
@@ -28,6 +28,7 @@
 - 🔍 **Búsqueda Automática Inteligente**: Detecta el título y artista exacto de la pista en Artlist y busca el video correspondiente en YouTube.
 - 🎯 **Algoritmo de Coincidencia (Smart Matching)**: Compara los resultados encontrados utilizando filtros de similitud para asegurar que el audio coincida con la canción original.
 - 💬 **Tooltip Dinámico con Información de Pista**: Al pasar el cursor sobre el botón de descarga, muestra un tooltip flotante con el título y artista detectados antes de hacer clic.
+- 🔀 **Modo Solo Búsqueda (Opcional)**: Un interruptor en el panel permite detener el flujo en la búsqueda de YouTube, sin abrir el conversor de MP3.
 - 🎛️ **Panel Popup con Switch ON/OFF**: Permite activar o desactivar la extensión en cualquier momento con un solo interruptor, además de incluir un botón de acceso directo a Artlist Music.
 - 🔒 **Enfocado Exclusivamente en Música**: Diseñado para operar únicamente en las secciones y filas de canciones, evitando interferir con otros elementos de la interfaz.
 - ⚡ **Ligero y Seguro**: Desarrollado bajo la especificación **Manifest V3**, sin dependencias externas pesadas y optimizado para ejecutarse en segundo plano sin ralentizar la navegación.
@@ -66,6 +67,7 @@ La extensión se puede instalar fácilmente en **Google Chrome**, **Brave**, **M
    - La extensión procesará la canción en segundo plano.
    - Encontrará el mejor resultado en YouTube y abrirá la pestaña de descarga correspondiente.
    - Si no encuentra una coincidencia exacta de alta confianza, abrirá la búsqueda directa de YouTube para que elijas manualmente.
+5. (Opcional) Activa **Open YouTube search only** en el panel para que el clic abra únicamente la búsqueda de YouTube, sin redirigir al conversor de MP3.
 
 ---
 
@@ -75,7 +77,7 @@ La extensión se puede instalar fácilmente en **Google Chrome**, **Brave**, **M
 ArtlistMusicDownloader/
 ├── manifest.json       # Configuración y permisos de la extensión (Manifest V3)
 ├── icons/              # Íconos de la extensión en diferentes resoluciones (16, 48, 128)
-├── popup/              # Interfaz gráfica del panel popup
+├── popup/              # Interfaz gráfica del panel popup (ajustes y accesos)
 │   ├── popup.html
 │   ├── popup.css
 │   └── popup.js
