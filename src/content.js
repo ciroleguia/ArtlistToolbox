@@ -67,7 +67,6 @@ function boot() {
 
     if (changes.enabled !== undefined) {
       extensionEnabled = changes.enabled.newValue;
-      applyPageTweaks();
       if (extensionEnabled) {
         bootstrapScansRemaining = BOOTSTRAP_SCAN_COUNT;
         scheduleScan(document);
@@ -212,7 +211,7 @@ function enhanceDownloadButtons(root = document) {
 }
 
 function applyPageTweaks() {
-  const shouldHideHero = extensionEnabled && hideHeroBanner;
+  const shouldHideHero = Boolean(hideHeroBanner);
   document.documentElement.toggleAttribute(HIDE_HERO_ATTR, shouldHideHero);
   try {
     window.localStorage.setItem(HIDE_HERO_CACHE_KEY, shouldHideHero ? "1" : "0");
@@ -223,7 +222,6 @@ function applyPageTweaks() {
 
 function removeEnhancements() {
   closePicker();
-  document.documentElement.removeAttribute(HIDE_HERO_ATTR);
   document.querySelectorAll(`.${ENHANCED_DOWNLOAD_CLASS}, [${DOWNLOAD_ATTR}]`).forEach((button) => {
     button.classList.remove(ENHANCED_DOWNLOAD_CLASS);
     button.classList.remove(ACTIVE_DOWNLOAD_CLASS);

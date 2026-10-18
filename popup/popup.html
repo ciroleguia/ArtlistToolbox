@@ -17,7 +17,10 @@
       </header>
 
       <div class="settings-row">
-        <span>Enable Downloader</span>
+        <div class="settings-label">
+          <span>Enable Downloader</span>
+          <small>Controls the download flow only; other toggles stay independent.</small>
+        </div>
         <label class="switch">
           <input type="checkbox" id="toggle-extension" checked>
           <span class="slider"></span>
@@ -58,7 +61,7 @@
       <div class="settings-row">
         <div class="settings-label">
           <span>Hide promo banner</span>
-          <small>Removes the big promo hero on library pages.</small>
+          <small>Removes the big promo hero on library pages, independent of the download toggle.</small>
         </div>
         <label class="switch">
           <input type="checkbox" id="toggle-hide-hero">

@@ -34,9 +34,9 @@
 - 🎚️ **Umbral de Coincidencia Ajustable**: Slider en el panel para definir la confianza mínima antes de abrir el conversor automáticamente.
 - 🕘 **Descargas Recientes**: Historial de los últimos 10 videos abiertos, con acceso directo desde el panel.
 - 📥 **Apertura en Segundo Plano**: Opción para no robar el foco al abrir pestañas.
-- 🧹 **Ocultar Banner Promocional (Opcional)**: Interruptor que elimina el hero de promoción de las páginas de biblioteca, dejando más espacio para la lista de canciones sin afectar la navegación ni la tabla de pistas.
+- 🧹 **Ocultar Banner Promocional (Opcional)**: Interruptor que elimina el hero de promoción de las páginas de biblioteca, dejando más espacio para la lista de canciones sin afectar la navegación ni la tabla de pistas, e independientemente del interruptor principal.
 - 💬 **Tooltip Dinámico con Información de Pista**: Al pasar el cursor sobre el botón de descarga, muestra un tooltip flotante con el título y artista detectados antes de hacer clic.
-- 🎛️ **Panel Popup con Switch ON/OFF**: Permite activar o desactivar la extensión en cualquier momento con un solo interruptor, además de incluir un botón de acceso directo a Artlist Music.
+- 🎛️ **Panel Popup con Switch ON/OFF**: Permite activar o desactivar el flujo de descarga en cualquier momento con un solo interruptor (los ajustes de página, como Hide promo banner, funcionan de forma independiente), además de incluir un botón de acceso directo a Artlist Music.
 - 🔒 **Enfocado Exclusivamente en Música**: Diseñado para operar únicamente en las secciones y filas de canciones, evitando interferir con otros elementos de la interfaz.
 - ⚡ **Ligero y Seguro**: Desarrollado bajo la especificación **Manifest V3**, sin dependencias externas pesadas y optimizado para ejecutarse en segundo plano sin ralentizar la navegación.
 

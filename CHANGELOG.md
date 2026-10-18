@@ -10,6 +10,7 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ### Changed
 - El hero promocional se oculta **antes del primer render**, sin parpadeo: un guard de página (`src/early-guard.js`) corre en `document_start` y aplica el ajuste síncronamente usando una caché local del valor efectivo; el resto de la lógica de la extensión sigue ejecutándose en `document_idle` como antes.
+- El interruptor **Enable Downloader** ahora controla únicamente el flujo de descarga (botones, matching y apertura de pestañas); los ajustes de página como **Hide promo banner** son independientes y siguen activos con el flujo desactivado.
 
 ## [0.5.0] - 2026-10-15
 
