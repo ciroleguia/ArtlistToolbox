@@ -17,6 +17,7 @@ const DEFAULT_SETTINGS = {
   flowMode: null,
   searchOnly: false,
   openInBackground: false,
+  hideHeroBanner: false,
   minScore: 0.42
 };
 

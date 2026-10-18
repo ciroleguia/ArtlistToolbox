@@ -2,6 +2,7 @@ const ENHANCED_DOWNLOAD_CLASS = "artlist-youtube-mp3-download";
 const ACTIVE_DOWNLOAD_CLASS = "artlist-youtube-mp3-download-active";
 const DOWNLOAD_ATTR = "data-artlist-youtube-mp3-download";
 const PICKER_ID = "artlist-y2mate-picker";
+const HIDE_HERO_ATTR = "data-artlist-toolbox-hide-hero";
 const SCAN_DEBOUNCE_MS = 250;
 const BOOTSTRAP_SCAN_COUNT = 12;
 const MAX_ROOTS_PER_SCAN = 30;
@@ -20,6 +21,7 @@ let bootstrapScansRemaining = BOOTSTRAP_SCAN_COUNT;
 const pendingRoots = new Set();
 let extensionEnabled = true;
 let flowMode = "auto";
+let hideHeroBanner = false;
 let pickerDismissListeners = null;
 
 boot();
@@ -31,14 +33,19 @@ function boot() {
   }
 
   // Load initial extension state
-  chrome.storage.local.get({ enabled: true, flowMode: null, searchOnly: false }, (items) => {
-    extensionEnabled = items.enabled;
-    flowMode = items.flowMode || (items.searchOnly ? "search" : "auto");
-    if (extensionEnabled) {
-      scheduleScan(document);
-      scheduleBootstrapScans();
+  chrome.storage.local.get(
+    { enabled: true, flowMode: null, searchOnly: false, hideHeroBanner: false },
+    (items) => {
+      extensionEnabled = items.enabled;
+      flowMode = items.flowMode || (items.searchOnly ? "search" : "auto");
+      hideHeroBanner = Boolean(items.hideHeroBanner);
+      applyPageTweaks();
+      if (extensionEnabled) {
+        scheduleScan(document);
+        scheduleBootstrapScans();
+      }
     }
-  });
+  );
 
   // Listen for state changes from popup
   chrome.storage.onChanged.addListener((changes, area) => {
@@ -52,8 +59,14 @@ function boot() {
       flowMode = changes.searchOnly.newValue ? "search" : "auto";
     }
 
+    if (changes.hideHeroBanner !== undefined) {
+      hideHeroBanner = Boolean(changes.hideHeroBanner.newValue);
+      applyPageTweaks();
+    }
+
     if (changes.enabled !== undefined) {
       extensionEnabled = changes.enabled.newValue;
+      applyPageTweaks();
       if (extensionEnabled) {
         bootstrapScansRemaining = BOOTSTRAP_SCAN_COUNT;
         scheduleScan(document);
@@ -197,8 +210,14 @@ function enhanceDownloadButtons(root = document) {
   });
 }
 
+function applyPageTweaks() {
+  const shouldHideHero = extensionEnabled && hideHeroBanner;
+  document.documentElement.toggleAttribute(HIDE_HERO_ATTR, shouldHideHero);
+}
+
 function removeEnhancements() {
   closePicker();
+  document.documentElement.removeAttribute(HIDE_HERO_ATTR);
   document.querySelectorAll(`.${ENHANCED_DOWNLOAD_CLASS}, [${DOWNLOAD_ATTR}]`).forEach((button) => {
     button.classList.remove(ENHANCED_DOWNLOAD_CLASS);
     button.classList.remove(ACTIVE_DOWNLOAD_CLASS);

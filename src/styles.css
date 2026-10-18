@@ -147,3 +147,17 @@
   border-color: #f9db54;
   color: #f9db54;
 }
+
+/*
+ * "Hide promo banner" page tweak.
+ *
+ * Targets the promotional hero on Artlist library pages (music/sfx). The hero
+ * itself has no testid, but it is the only child of the flex-col content wrapper
+ * that contains the guest hero actions block. Matching by that semantic anchor
+ * (instead of nth-child XPaths) keeps the rule stable across responsive layouts
+ * and React re-renders; if Artlist renames the testid the rule simply stops
+ * matching and never hides an unrelated element.
+ */
+html[data-artlist-toolbox-hide-hero] #app-root div[class~="flex-col"] > div:has([data-testid="GuestHeroActions"]) {
+  display: none !important;
+}

@@ -9,6 +9,7 @@ const FLOW_HINTS = {
 
 const toggleCheckbox = document.getElementById("toggle-extension");
 const backgroundCheckbox = document.getElementById("toggle-background");
+const hideHeroCheckbox = document.getElementById("toggle-hide-hero");
 const minScoreInput = document.getElementById("min-score");
 const thresholdValue = document.getElementById("threshold-value");
 const flowModes = document.getElementById("flow-modes");
@@ -25,12 +26,14 @@ chrome.storage.local.get(
     flowMode: null,
     searchOnly: false,
     openInBackground: false,
+    hideHeroBanner: false,
     minScore: 0.42,
     recent: []
   },
   (items) => {
     toggleCheckbox.checked = items.enabled;
     backgroundCheckbox.checked = items.openInBackground;
+    hideHeroCheckbox.checked = items.hideHeroBanner;
     minScoreInput.value = Math.round(items.minScore * 100);
     thresholdValue.textContent = `${Math.round(items.minScore * 100)}%`;
 
@@ -51,6 +54,10 @@ toggleCheckbox.addEventListener("change", () => {
 
 backgroundCheckbox.addEventListener("change", () => {
   chrome.storage.local.set({ openInBackground: backgroundCheckbox.checked });
+});
+
+hideHeroCheckbox.addEventListener("change", () => {
+  chrome.storage.local.set({ hideHeroBanner: hideHeroCheckbox.checked });
 });
 
 minScoreInput.addEventListener("input", () => {

@@ -34,6 +34,7 @@
 - 🎚️ **Umbral de Coincidencia Ajustable**: Slider en el panel para definir la confianza mínima antes de abrir el conversor automáticamente.
 - 🕘 **Descargas Recientes**: Historial de los últimos 10 videos abiertos, con acceso directo desde el panel.
 - 📥 **Apertura en Segundo Plano**: Opción para no robar el foco al abrir pestañas.
+- 🧹 **Ocultar Banner Promocional (Opcional)**: Interruptor que elimina el hero de promoción de las páginas de biblioteca, dejando más espacio para la lista de canciones sin afectar la navegación ni la tabla de pistas.
 - 💬 **Tooltip Dinámico con Información de Pista**: Al pasar el cursor sobre el botón de descarga, muestra un tooltip flotante con el título y artista detectados antes de hacer clic.
 - 🎛️ **Panel Popup con Switch ON/OFF**: Permite activar o desactivar la extensión en cualquier momento con un solo interruptor, además de incluir un botón de acceso directo a Artlist Music.
 - 🔒 **Enfocado Exclusivamente en Música**: Diseñado para operar únicamente en las secciones y filas de canciones, evitando interferir con otros elementos de la interfaz.
@@ -73,7 +74,7 @@ La extensión se puede instalar fácilmente en **Google Chrome**, **Brave**, **M
    - **Auto** (por defecto): la extensión procesa la canción en segundo plano, encuentra el mejor resultado en YouTube y abre la pestaña del conversor MP3. Si no hay una coincidencia con suficiente confianza, abre la búsqueda directa de YouTube.
    - **Ask me**: muestra un panel flotante con los mejores resultados (miniatura, canal, duración y % de coincidencia) para elegir el video que se abrirá en el conversor.
    - **Search only**: abre únicamente la búsqueda de YouTube, sin redirigir al conversor de MP3.
-5. (Opcional) Ajusta el **umbral de coincidencia** (Match threshold) y la apertura en segundo plano desde el panel.
+5. (Opcional) Ajusta el **umbral de coincidencia** (Match threshold), la apertura en segundo plano y el interruptor **Hide promo banner** (oculta el hero promocional en las páginas de biblioteca) desde el panel.
 
 ---
 

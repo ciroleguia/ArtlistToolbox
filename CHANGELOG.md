@@ -3,6 +3,11 @@
 Todos los cambios notables de este proyecto se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y el proyecto usa [Versionado Semántico](https://semver.org/lang/es/).
 
+## [Unreleased]
+
+### Added
+- Interruptor **Hide promo banner** en el panel: oculta el hero de promoción (título, CTAs y logos) en las páginas de biblioteca de Artlist para dar más espacio a la lista de canciones. No afecta a la barra de navegación ni a la tabla de pistas.
+
 ## [0.5.0] - 2026-10-15
 
 ### Added
