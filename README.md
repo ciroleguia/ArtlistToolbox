@@ -1,176 +1,146 @@
-# 🎵 Artlist Toolbox
+# Artlist Toolbox
 
 <p align="center">
-  <img src="icons/icon128.png" width="100" height="100" alt="Artlist Toolbox Logo">
+  <img src="icons/icon128.png" width="100" height="100" alt="Artlist Toolbox icon">
 </p>
 
 <p align="center">
-  <strong>Extensión de Chrome para facilitar la búsqueda y descarga en MP3 de pistas de música de Artlist.</strong>
+  Library tools for Artlist, plus an optional YouTube MP3 workflow.
 </p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/Manifest-V3-blue.svg" alt="Manifest V3">
-  <img src="https://img.shields.io/badge/Versi%C3%B3n-0.6.0-brightgreen.svg" alt="Version 0.6.0">
-  <img src="https://img.shields.io/badge/Licencia-MIT-orange.svg" alt="Licencia MIT">
-  <img src="https://img.shields.io/badge/Chrome-Extension-informational.svg" alt="Chrome Extension">
+  <img src="https://img.shields.io/badge/Version-0.6.0-brightgreen.svg" alt="Version 0.6.0">
+  <img src="https://img.shields.io/badge/License-MIT-orange.svg" alt="License MIT">
 </p>
 
----
+Artlist Toolbox is a Manifest V3 extension for [Artlist](https://artlist.io). It adds library tools to the music pages and a flow that searches YouTube for a track (in backend) and opens the y2mate.gs MP3 converter with the selected video.
 
-## 📖 Descripción
+It's just a tool I made to optimize my daily workflow at my video editing job, and I share it to you all if it can help you as it does for me. :)
 
-**Artlist Toolbox** es una extensión de navegador (Manifest V3) creada para mejorar el flujo de trabajo en [Artlist.io](https://artlist.io). El repositorio conserva el nombre histórico `ArtlistMusicDownloader`. Funciona como una **caja de herramientas de biblioteca** (modo compacto, copiar info de pistas, atajos, exportar CSV, cola por lotes) y suma un **flujo opcional de descarga MP3** que intercepta los botones de descarga de las pistas para buscar de forma automática e inteligente la coincidencia más precisa (título, artista y duración) en YouTube y abrir directamente el conversor. El flujo de descarga viene **desactivado por defecto** y todo su comportamiento es configurable desde la página de Ajustes.
+The download flow is off by default. The page tools and the download flow are separate. Compact rows, the promo banner switch, copying track details, CSV export, and processed-track dimming work with the flow disabled. Actions that open the converter, the result picker, or the queue need the flow enabled.
 
----
+## Requirements
 
-## ✨ Características Principales
+I only tested it on my Brave browser (Chr. v155), should work in others Chromium-based browsers tho.
+The extension runs from source and has no runtime dependencies.
 
-- 🔍 **Búsqueda Automática Inteligente**: Detecta el título, artista y duración exactos de la pista en Artlist y busca el video correspondiente en YouTube.
-- 🎯 **Algoritmo de Coincidencia (Smart Matching)**: Compara los resultados por similitud de título, artista y duración, y penaliza versiones no deseadas (karaoke, cover, remix, nightcore, etc.) y premia las preferidas (official audio, topic, etc.).
-- 🧠 **Memoria de Matches**: Recuerda el video elegido para cada pista y, en modo Auto, abre el conversor directamente sin repetir la búsqueda. Gestionable desde los ajustes.
-- ⏱️ **Veto por Duración**: Si la duración del mejor resultado difiere más de lo permitido (15 s por defecto, ajustable), el modo Auto abre el picker en lugar de decidir solo.
-- 🔀 **Tres Modos de Flujo**: **Auto** (busca, elige y abre el conversor), **Ask me** (picker con los 5 mejores resultados) y **Search only** (solo la búsqueda de YouTube).
-- 🎚️ **Umbral de Coincidencia Ajustable**: Slider para definir la confianza mínima antes de abrir el conversor automáticamente.
-- ✍️ **Términos Personalizados**: Listas de términos penalizados y preferidos editables desde los ajustes, una por línea, con restauración de valores por defecto.
-- 📥 **Apertura en Segundo Plano**: Opción para no robar el foco al abrir pestañas.
-- ⌨️ **Atajos de Teclado** (desactivables): `d` para descargar la fila bajo el cursor, `c` para copiar su información, `/` para enfocar el buscador y `q` para el modo cola.
-- 🖱️ **Clics Modificadores**: Alt+clic fuerza el picker, Shift+clic abre solo la búsqueda y Ctrl/Cmd+clic copia el link de YouTube resuelto sin abrir pestañas.
-- 📋 **Copiar Info de Pista**: Formato "Artista - Título (m:ss)" vía atajo `c` o menú contextual.
-- 📏 **Modo Compacto**: Filas más densas para ver más pistas por pantalla.
-- ✅ **Historial de Procesadas**: Las pistas que ya pasaron por el flujo se atenúan (opcional) y avisan al repetirse.
-- 📦 **Cola por Lotes**: Modo selección con barra flotante, procesado secuencial en segundo plano (aplica memoria y veto) y resumen final con contadores. Cancelable en cualquier momento.
-- 📤 **Exportar CSV**: Pistas visibles (botón opcional del panel, activable en Ajustes → Advanced, + menú contextual) y descargas recientes (ajustes), con enlace de YouTube enriquecido desde la memoria/historial.
-- 📊 **Estadísticas**: Total de descargas y desglose de los últimos 14 días, visibles en el panel y en los ajustes.
-- 🧹 **Ocultar Banner Promocional (Opcional)**: Interruptor que elimina el hero de promoción de las páginas de biblioteca antes del primer render, dejando más espacio para la lista de canciones sin afectar la navegación ni la tabla de pistas, e independientemente del interruptor principal.
-- 💬 **Tooltip Dinámico con Información de Pista**: Al pasar el cursor sobre el botón de descarga, muestra un tooltip flotante con el título y artista detectados antes de hacer clic.
-- 🎛️ **Panel Popup**: Master switch (**desactivado por defecto**), modos de flujo, umbral, toggles de página, exportación rápida, descargas recientes, estadísticas y acceso directo a la página de Ajustes.
-- 💾 **Configuración Exportable**: Export/import de la configuración completa en JSON, restauración de valores por defecto y panel de diagnóstico (versión, uso de almacenamiento y contadores).
-- 🔒 **Enfocado Exclusivamente en Música**: Diseñado para operar únicamente en las secciones y filas de canciones, evitando interferir con otros elementos de la interfaz.
-- ⚡ **Ligero y Seguro**: Desarrollado bajo la especificación **Manifest V3**, sin dependencias externas pesadas y optimizado para ejecutarse en segundo plano sin ralentizar la navegación.
+## Install
 
----
+1. Download the repository as a ZIP, or clone it:
+   ```bash
+   git clone https://github.com/ciroleguia/ArtlistMusicDownloader.git
+   ```
+2. Open `chrome://extensions`. In Brave, use `brave://extensions`. In Edge, use `edge://extensions`.
+3. Turn on Developer mode.
+4. Click Load unpacked and select the folder that contains `manifest.json`.
+5. Open [Artlist](https://artlist.io/royalty-free-music). If the site was already open, refresh the tab.
 
-## 🚀 Instalación
+## Use
 
-La extensión se puede instalar fácilmente en **Google Chrome**, **Brave**, **Microsoft Edge**, **Opera** o cualquier navegador basado en Chromium.
+Open the extension popup from the toolbar to see the main settings, then there's a gear icon opens the extended settings page too.
 
-### Paso 1: Descargar el proyecto
-- **Opción A (ZIP)**: Haz clic en el botón verde **`Code`** arriba y selecciona **`Download ZIP`**. Luego descomprime el archivo `.zip` en una carpeta accesible en tu computadora.
-- **Opción B (Git)**: Clona el repositorio desde tu terminal:
-  ```bash
-  git clone https://github.com/ciroleguia/ArtlistMusicDownloader.git
-  ```
+### Page tools
 
-### Paso 2: Cargar en el navegador
-1. Abre tu navegador y dirígete a:
-   - Chrome: `chrome://extensions`
-   - Brave: `brave://extensions`
-   - Edge: `edge://extensions`
-2. En la esquina superior derecha, activa el **Modo de desarrollador** (*Developer mode*).
-3. Haz clic en el botón **Cargar descomprimida** (*Load unpacked*).
-4. Selecciona la carpeta donde descargaste o descomprimiste el proyecto (`ArtlistMusicDownloader`).
-5. ¡Listo! La extensión quedará instalada y visible en tu barra de herramientas.
+Keyboard shortcuts are on by default. You can turn them off in Settings, Page and library.
 
----
+- `c` copies the track under the cursor as `Artist - Title (m:ss)`.
+- `/` focuses the library search field.
+- Compact rows reduce the vertical padding of music rows and the sound effects table.
+- Hide promo banner removes the promotional hero from library pages. It leaves the navigation bar and the track list in place.
+- Processed tracks can be dimmed from the stored history.
+- The right-click menu can copy the current track details or export the visible tracks to CSV on Artlist pages.
+- CSV export uses the columns Title, Artist, Duration, Artlist URL, and YouTube URL. The extension fills the YouTube column from match memory or the processed history when it knows the video. The popup button is hidden until you enable it in Settings, Advanced. The context-menu export is always available.
+- The popup shows the total download count and a 14-day breakdown.
 
-## 🎧 Modo de Uso
+### Download flow
 
-1. Ingresa a [Artlist.io](https://artlist.io) y abre cualquier biblioteca de canciones.
-2. **Activa el flujo de descarga**: viene **desactivado por defecto**. Enciende **Enable Downloader** en el panel (o en la página de Ajustes). La caja de herramientas de biblioteca (modo compacto, copiar info, atajos, exportar CSV, cola) funciona **sin** activarlo.
-3. Navega por el catálogo de canciones.
-4. Al pasar el cursor por encima del botón de descarga, verás un tooltip indicando la canción detectada.
-5. Haz clic en el botón de descarga (el comportamiento depende del modo elegido):
-   - **Auto** (por defecto): la extensión procesa la canción en segundo plano, usa la memoria de matches o busca la mejor coincidencia en YouTube y abre la pestaña del conversor MP3. Si la duración no coincide (veto) o no hay una coincidencia con suficiente confianza, abre el picker o la búsqueda de YouTube.
-   - **Ask me**: muestra un panel flotante con los mejores resultados (miniatura, canal, duración y % de coincidencia) para elegir el video. El video elegido se recuerda para la próxima vez (badge "Usada antes").
-   - **Search only**: abre únicamente la búsqueda de YouTube, sin redirigir al conversor de MP3.
-6. Extras del día a día:
-   - `d` descarga la fila bajo el cursor · `c` copia su info · `/` enfoca el buscador · `q` activa el modo cola.
-   - **Alt+clic** fuerza el picker para esa pista · **Shift+clic** abre solo la búsqueda · **Ctrl/Cmd+clic** copia el link de YouTube sin abrir pestañas.
-   - Clic derecho sobre una pista para copiar su info, o sobre la página para exportar las pistas visibles a CSV.
-7. Cola por lotes: presiona `q`, haz clic en las filas que quieras (se marcan en amarillo) y pulsa **Procesar** en la barra flotante. Se procesan en secuencia en segundo plano y el resumen final indica cuántas fueron al conversor, a búsqueda o con error.
-8. (Opcional) Ajusta el umbral de coincidencia, la apertura en segundo plano, los toggles de página y todo lo demás desde la **página de Ajustes**.
+Turn on `Enable Downloader` in the popup or in Settings. Pick one of three modes:
 
----
+| Mode | What happens |
+|---|---|
+| Auto | The extension checks match memory, searches YouTube when needed, scores the results, and opens the converter if the best match clears the threshold. The duration veto can send the track to the picker instead. |
+| Ask me | The picker shows up to five results with thumbnail, channel, duration, and score. The extension saves the video you choose to match memory. |
+| Search only | The extension opens the YouTube search page and stops there. It does not open the converter. |
 
-## ⚙️ Página de Ajustes
+The match threshold sets the minimum score for an automatic pick. The default is 42%, and the popup slider covers 30% to 75%. Duration veto compares the Artlist track length with the YouTube video and opens the picker when the difference exceeds the tolerance, which is 15 seconds by default. You can change both values in Settings.
 
-Accesible desde el icono de engranaje (⚙) de la cabecera del panel (o automáticamente en Ajustes de la extensión). Secciones:
+Match memory stores up to 500 title and artist pairs. In Auto mode, a remembered track opens the converter without another search. The picker marks the video you used before.
 
-- **Download flow**: master switch, modo por defecto, umbral, apertura en segundo plano, veto por duración y su tolerancia.
-- **Keywords**: términos penalizados y preferidos (uno por línea) con restauración de valores por defecto.
-- **Match memory**: interruptor de memoria + listado de los últimos matches recordados con borrado individual.
-- **Processed history**: pistas ya procesadas (usadas para la atenuación y el aviso de repetidas), con borrado individual o total.
-- **Page & library**: hide promo banner, modo compacto, atenuación de procesadas y atajos de teclado.
-- **Advanced**: mostrar u ocultar el botón de exportar CSV en el panel (oculto por defecto).
-- **Modifier clicks & menus**: referencia rápida de los clics modificadores y del menú contextual.
-- **Stats**: total y desglose diario de los últimos 14 días, con reseteo.
-- **Config**: export/import de la configuración completa en JSON, export de recientes a CSV y restauración de valores por defecto.
-- **Diagnostics**: versión, uso de almacenamiento, contadores y botón para copiar el diagnóstico al portapapeles.
+These actions work while the flow is on:
 
----
+- `d` starts the download action for the row under the cursor.
+- `q` starts queue mode. Click rows to select them, press Process, and the queue processes each track through the Auto flow. If a track has no confident match or fails the duration check, it opens the YouTube search instead. The final message reports how many tracks opened in the converter, went to search, or failed. You can stop the queue from the floating bar.
+- If a track is already in the processed history, the download action shows a warning.
+- Alt+click forces the picker for one track.
+- Shift+click opens only the YouTube search for that track.
+- Ctrl+click or Cmd+click copies the resolved YouTube URL without opening a tab.
+- The download button shows a tooltip with the detected title and artist.
 
-## 📁 Estructura del Repositorio
+Open in background applies to all three modes. The page still opens, but the browser does not focus the new tab. The `d` and `q` shortcuts also follow the keyboard shortcuts setting, which is on by default.
 
-```text
-ArtlistMusicDownloader/
-├── manifest.json       # Configuración y permisos de la extensión (Manifest V3)
-├── package.json        # Scripts de desarrollo (tests, validaciones, empaquetado)
-├── icons/              # Íconos de la extensión en diferentes resoluciones (16, 48, 128)
-├── popup/              # Panel popup (master switch, modos, export rápido, recientes)
-│   ├── popup.html
-│   ├── popup.css
-│   └── popup.js
-├── options/            # Página de Ajustes completa (toda la configuración)
-│   ├── options.html
-│   ├── options.css
-│   └── options.js
-├── src/                # Lógica principal de la extensión
-│   ├── background.js   # Service Worker (mensajería, matching, memoria, stats, menú contextual)
-│   ├── content.js      # Content Script (inyección en la página, tooltips, picker, cola, atajos)
-│   ├── early-guard.js  # Guard de document_start (oculta el hero antes del primer render)
-│   ├── styles.css      # Estilos de botones, picker, toasts y barra de cola en Artlist
-│   └── lib/            # Lógica pura y testeable
-│       ├── matcher.js  # Normalización, puntuación, veto por duración y fingerprints
-│       ├── defaults.js # Valores por defecto compartidos de chrome.storage
-│       ├── csv.js      # Generación de CSV y formato de duraciones
-│       └── youtube.js  # Parseo de resultados de YouTube y URLs
-├── test/               # Tests unitarios (node --test)
-├── scripts/            # Utilidades de validación y empaquetado
-├── .github/workflows/  # CI y publicación automática de releases
-├── CHANGELOG.md        # Historial de cambios
-├── LICENSE             # Licencia de código abierto (MIT)
-└── README.md           # Documentación del proyecto
-```
+### Settings
 
----
+Open the settings page with the gear icon in the popup, or from the extension entry in `chrome://extensions`.
 
-## 🛠️ Desarrollo
+| Section | What it controls |
+|---|---|
+| Download flow | Master switch, default mode, match threshold, background opening, duration veto, and tolerance. |
+| Keywords | Penalized and preferred search terms, one per line, with buttons to restore the defaults. |
+| Match memory | The memory switch and the list of remembered videos, with individual and bulk delete. |
+| Processed history | Tracks that already went through the flow, with individual and bulk delete. |
+| Page and library | Promo banner, compact rows, processed dimming, and keyboard shortcuts. |
+| Advanced | The optional CSV button in the popup. |
+| Modifier clicks and menus | A reference for the modifier clicks and the context-menu actions. |
+| Stats | Download total, the 14-day breakdown, and a reset button. |
+| Config | JSON export and import, recent-downloads CSV export, and restoring the default settings. |
+| Diagnostics | Version, storage usage, counters, and a copy-to-clipboard report. |
 
-El proyecto no tiene dependencias externas: solo necesitas **Node.js 20+**.
+### Permissions and data
+
+| Permission | Why the extension needs it |
+|---|---|
+| `tabs` | Opens the YouTube and y2mate tabs, and sends messages to Artlist tabs. |
+| `storage` | Keeps settings, match memory, processed history, recent downloads, and stats in `chrome.storage.local`. |
+| `contextMenus` | Adds the copy and CSV actions to the right-click menu. |
+| `https://artlist.io/*`, `https://*.artlist.io/*` | Reads track details and applies the page tools. |
+| `https://www.youtube.com/*`, `https://youtube.com/*` | Requests YouTube search pages to score video candidates. |
+| `https://y2mate.gs/*` | Opens the converter page for the selected video. |
+
+The extension keeps its data in `chrome.storage.local`. It has no account system, analytics, or project-owned server. When you use the download flow, your browser requests YouTube search pages and opens y2mate.gs. Those sites receive normal request data under their own terms and privacy policies. The project does not control y2mate.gs.
+
+## Development
+
+Node.js 20 or newer is required for the repository scripts. The extension itself has no runtime dependencies.
 
 ```bash
-npm test      # Tests unitarios de la lógica de matching y parseo (node --test)
-npm run check # Validación de sintaxis y de archivos referenciados por manifest.json
-npm run zip   # Genera dist/ArtlistMusicDownloader-v<versión>.zip listo para distribuir
+npm test      # Unit tests for matching, toolbox helpers, and YouTube parsing
+npm run check # Syntax checks and manifest file validation
+npm run zip   # Builds dist/ArtlistMusicDownloader-v<version>.zip
 ```
 
-Los workflows de GitHub Actions ejecutan estas validaciones en cada push y publican automáticamente el `.zip` en GitHub Releases al crear un tag `v*`.
+GitHub Actions runs `npm run check` and `npm test` on pushes to `main` and on pull requests. A pushed `v*` tag runs the release workflow, builds the zip, and attaches it to a GitHub Release.
 
----
+## Contributing
 
-## 📜 Licencia
+Open an issue for a bug or a feature request. Pull requests should pass `npm test` and `npm run check`, and they should stay focused on one change. Describe the behavior before and after the change.
 
-Este proyecto está bajo la Licencia **MIT**. Consulta el archivo [LICENSE](LICENSE) para más detalles.
+If this project looks useful to you, a ⭐ would mean a lot and it helps others discover it too. :)
 
----
+If you want to sponsor my projects for creatives, [contact me](mailto:ciroaleguia@gmail.com).
 
-## ⚠️ Descargo de Responsabilidad (Disclaimer)
+## Changelog
 
-Este proyecto ha sido desarrollado únicamente con fines educativos y de investigación técnica para extensiones de navegador. No está afiliado, respaldado ni asociado de ninguna manera con Artlist, YouTube ni con los servicios de conversión de terceros. Los usuarios son responsables de respetar los términos de servicio y las leyes de propiedad intelectual aplicables.
+Release notes live in [CHANGELOG.md](CHANGELOG.md).
 
----
+## License
 
-## 👤 Autor
+MIT. See [LICENSE](LICENSE).
 
-Desarrollado con ❤️ por **Ciro Leguía**  
-- GitHub: [@ciroleguia](https://github.com/ciroleguia)
+## Disclaimer
+
+Artlist Toolbox is not affiliated with Artlist, YouTube, or y2mate. The extension does not host, convert, or download audio itself. It opens pages from those services. You are responsible for following their terms and for holding the rights to any track you download. Use it only with content you are allowed to use.
+
+## Author
+
+Ciro Leguía. GitHub: [@ciroleguia](https://github.com/ciroleguia).
