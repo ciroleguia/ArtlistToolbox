@@ -21,6 +21,19 @@ export const NEGATIVE_TERMS = [
   "live"
 ];
 
+// Terms that usually indicate the canonical upload. They add a small bonus
+// when present in the candidate title/artist.
+export const DEFAULT_PREFERRED_TERMS = [
+  "official audio",
+  "official video",
+  "topic",
+  "lyric video",
+  "audio library"
+];
+
+export const PREFERRED_BONUS_PER_HIT = 0.05;
+export const PREFERRED_BONUS_MAX = 0.1;
+
 export function cleanText(value) {
   return String(value || "")
     .replace(/\s+/g, " ")
@@ -105,7 +118,10 @@ export function levenshteinDistance(a, b) {
   return previous[b.length];
 }
 
-export function scoreCandidate(track, candidate, index = 0) {
+export function scoreCandidate(track, candidate, index = 0, options = {}) {
+  const negativeTerms = resolveTerms(options.negativeTerms, NEGATIVE_TERMS);
+  const preferredTerms = resolveTerms(options.preferredTerms, DEFAULT_PREFERRED_TERMS);
+
   const targetTitle = normalizeForMatch(track.title);
   const targetArtist = normalizeForMatch(track.artist);
   const candidateTitle = normalizeForMatch(candidate.title);
@@ -136,20 +152,25 @@ export function scoreCandidate(track, candidate, index = 0) {
 
   const rankPenalty = Math.min(index, 10) * 0.015;
   const rawCombined = cleanText(`${candidate.title} ${candidate.artist}`);
-  return clamp01(round3(score - rankPenalty - negativeTermPenalty(track, rawCombined)));
+  const adjusted =
+    score -
+    rankPenalty -
+    negativeTermPenalty(track, rawCombined, negativeTerms) +
+    preferredTermBonus(rawCombined, preferredTerms);
+  return clamp01(round3(adjusted));
 }
 
-export function scoreCandidates(track, candidates = []) {
+export function scoreCandidates(track, candidates = [], options = {}) {
   return candidates
     .map((candidate, index) => ({
       ...candidate,
-      score: scoreCandidate(track, candidate, index)
+      score: scoreCandidate(track, candidate, index, options)
     }))
     .sort((a, b) => b.score - a.score);
 }
 
-export function pickBestMatch(track, candidates = [], minScore = DEFAULT_MIN_SCORE) {
-  const [best] = scoreCandidates(track, candidates);
+export function pickBestMatch(track, candidates = [], minScore = DEFAULT_MIN_SCORE, options = {}) {
+  const [best] = scoreCandidates(track, candidates, options);
   if (!best || best.score < minScore) {
     return null;
   }
@@ -157,19 +178,66 @@ export function pickBestMatch(track, candidates = [], minScore = DEFAULT_MIN_SCO
   return best;
 }
 
-function negativeTermPenalty(track, candidateSource) {
+// True when both durations are known and differ by more than the tolerance.
+// Used by the background to force the picker (duration veto) in auto mode.
+export function durationMismatch(track, candidate, toleranceSeconds = 15) {
+  const target = Number(track?.duration);
+  const candidateDuration = Number(candidate?.duration);
+  const tolerance = Number(toleranceSeconds);
+
+  if (!Number.isFinite(target) || target <= 0) {
+    return false;
+  }
+  if (!Number.isFinite(candidateDuration) || candidateDuration <= 0) {
+    return false;
+  }
+
+  return Math.abs(target - candidateDuration) > (Number.isFinite(tolerance) ? tolerance : 15);
+}
+
+// Stable key for match memory / processed history, based on title + artist.
+export function buildFingerprint(track = {}) {
+  const title = normalizeForMatch(track.title);
+  const artist = normalizeForMatch(track.artist);
+  if (!title && !artist) {
+    return "";
+  }
+  return `${title}::${artist}`;
+}
+
+function resolveTerms(customTerms, fallbackTerms) {
+  // An explicitly empty array means "no terms"; null/undefined fall back to
+  // the built-in defaults.
+  const source = Array.isArray(customTerms) ? customTerms : fallbackTerms;
+  return source.map((term) => normalizeForTerms(term)).filter(Boolean);
+}
+
+function negativeTermPenalty(track, candidateSource, terms = NEGATIVE_TERMS) {
   // Keep bracket contents (e.g. "(Karaoke Version)") so penalties still apply.
   const target = normalizeForTerms([track.title, track.artist].filter(Boolean).join(" "));
   const candidateText = normalizeForTerms(candidateSource);
   let hits = 0;
 
-  NEGATIVE_TERMS.forEach((term) => {
+  terms.forEach((term) => {
     if (containsTerm(candidateText, term) && !containsTerm(target, term)) {
       hits += 1;
     }
   });
 
   return Math.min(hits * 0.12, 0.35);
+}
+
+function preferredTermBonus(candidateSource, terms = DEFAULT_PREFERRED_TERMS) {
+  const candidateText = normalizeForTerms(candidateSource);
+  let hits = 0;
+
+  terms.forEach((term) => {
+    if (containsTerm(candidateText, term)) {
+      hits += 1;
+    }
+  });
+
+  return Math.min(hits * PREFERRED_BONUS_PER_HIT, PREFERRED_BONUS_MAX);
 }
 
 function normalizeForTerms(value) {

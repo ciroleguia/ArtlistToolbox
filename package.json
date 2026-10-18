@@ -1,12 +1,12 @@
 {
   "name": "artlist-downloader",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "private": true,
   "type": "module",
   "description": "Chrome extension that replaces Artlist track downloads with a YouTube MP3 lookup.",
   "scripts": {
     "test": "node --test",
-    "check": "node --check src/background.js && node --check src/content.js && node --check src/early-guard.js && node --check src/lib/matcher.js && node --check src/lib/youtube.js && node --check popup/popup.js && node scripts/validate-manifest.mjs",
+    "check": "node --check src/background.js && node --check src/content.js && node --check src/early-guard.js && node --check src/lib/matcher.js && node --check src/lib/defaults.js && node --check src/lib/csv.js && node --check src/lib/youtube.js && node --check popup/popup.js && node --check options/options.js && node scripts/validate-manifest.mjs",
     "zip": "bash scripts/build-zip.sh"
   }
 }
