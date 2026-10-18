@@ -151,13 +151,18 @@
 /*
  * "Hide promo banner" page tweak.
  *
- * Targets the promotional hero on Artlist library pages (music/sfx). The hero
- * itself has no testid, but it is the only child of the flex-col content wrapper
- * that contains the guest hero actions block. Matching by that semantic anchor
- * (instead of nth-child XPaths) keeps the rule stable across responsive layouts
- * and React re-renders; if Artlist renames the testid the rule simply stops
- * matching and never hides an unrelated element.
+ * Targets the promotional hero on Artlist library pages (music/sfx). Three
+ * semantic anchors, no nth-child XPaths:
+ *   1. guest hero actions testid (music library, anonymous visitors)
+ *   2. direct sibling right before the [data-testid="Music"] list container
+ *      (covers logged-in variants whose hero keeps no testid)
+ *   3. [data-testid="HeroSection"] wrapper (sfx library; unique in #app-root)
+ * Anchors keep the rule stable across responsive layouts and React
+ * re-renders; if Artlist renames them the rule simply stops matching and
+ * never hides unrelated content.
  */
-html[data-artlist-toolbox-hide-hero] #app-root div[class~="flex-col"] > div:has([data-testid="GuestHeroActions"]) {
+html[data-artlist-toolbox-hide-hero] #app-root div[class~="flex-col"] > div:has([data-testid="GuestHeroActions"]),
+html[data-artlist-toolbox-hide-hero] #app-root div[class~="flex-col"] > div:has(+ [data-testid="Music"]),
+html[data-artlist-toolbox-hide-hero] #app-root [data-testid="HeroSection"] {
   display: none !important;
 }
