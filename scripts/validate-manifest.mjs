@@ -5,6 +5,7 @@ const manifest = JSON.parse(readFileSync("manifest.json", "utf8"));
 const referencedFiles = [
   manifest.background?.service_worker,
   manifest.action?.default_popup,
+  manifest.options_ui?.page,
   ...(manifest.content_scripts ?? []).flatMap((entry) => [
     ...(entry.js ?? []),
     ...(entry.css ?? [])

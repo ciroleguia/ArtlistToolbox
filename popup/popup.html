@@ -12,17 +12,17 @@
         <img src="../icons/icon48.png" alt="" class="logo">
         <div>
           <h1>Artlist Downloader</h1>
-          <p>Quick access and download flow helper.</p>
+          <p>Library tools plus an optional YouTube MP3 flow.</p>
         </div>
       </header>
 
       <div class="settings-row">
         <div class="settings-label">
           <span>Enable Downloader</span>
-          <small>Controls the download flow only; other toggles stay independent.</small>
+          <small>Off by default. Controls the download flow only; everything below stays independent.</small>
         </div>
         <label class="switch">
-          <input type="checkbox" id="toggle-extension" checked>
+          <input type="checkbox" id="toggle-extension">
           <span class="slider"></span>
         </label>
       </div>
@@ -69,9 +69,25 @@
         </label>
       </div>
 
+      <div class="settings-row">
+        <div class="settings-label">
+          <span>Compact rows</span>
+          <small>Tighter track rows so more of the library fits on screen.</small>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="toggle-compact">
+          <span class="slider"></span>
+        </label>
+      </div>
+
       <button id="open-artlist" class="primary-button" type="button">
         Open Artlist Music
       </button>
+
+      <button id="export-csv" class="secondary-button" type="button">
+        Export visible tracks (CSV)
+      </button>
+      <p id="popup-status" class="popup-status" hidden></p>
 
       <section class="recent">
         <div class="recent-head">
@@ -80,13 +96,16 @@
         </div>
         <ul id="recent-list"></ul>
         <p id="recent-empty">No downloads yet.</p>
+        <p id="stats-line" class="stats-line"></p>
       </section>
 
       <footer class="credits">
+        <button id="open-options" class="link-button" type="button">Settings</button>
+        <span class="separator">·</span>
         developed by <a href="https://github.com/ciroleguia" target="_blank" rel="noopener">Ciro</a>
         <span id="version" class="version"></span>
       </footer>
     </main>
-    <script src="popup.js"></script>
+    <script type="module" src="popup.js"></script>
   </body>
 </html>

@@ -79,6 +79,57 @@ p {
   margin-top: 4px;
 }
 
+.secondary-button {
+  background: transparent;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  color: #e2e8f0;
+  cursor: pointer;
+  font: 600 13px/1 system-ui, sans-serif;
+  margin-top: 8px;
+  padding: 10px 12px;
+  width: 100%;
+}
+
+.secondary-button:hover {
+  border-color: #f9db54;
+  color: #f9db54;
+}
+
+.popup-status {
+  color: #9aa4b8;
+  font-size: 11px;
+  margin: 8px 0 0;
+  text-align: center;
+}
+
+.popup-status.error {
+  color: #f87171;
+}
+
+.stats-line {
+  color: #8b95a8;
+  font-size: 11px;
+  margin: 8px 0 0;
+}
+
+.link-button {
+  background: none;
+  border: 0;
+  color: #f9db54;
+  cursor: pointer;
+  font: 600 11px/1 system-ui, sans-serif;
+  padding: 0;
+}
+
+.link-button:hover {
+  text-decoration: underline;
+}
+
+.credits .separator {
+  margin: 0 4px;
+}
+
 .settings-row {
   display: flex;
   align-items: center;
@@ -373,6 +424,16 @@ input:checked + .slider:before {
   }
 
   .recent-head button {
+    color: #6b7383;
+  }
+
+  .secondary-button {
+    border-color: rgba(15, 17, 21, 0.2);
+    color: #1f2430;
+  }
+
+  .popup-status,
+  .stats-line {
     color: #6b7383;
   }
 }

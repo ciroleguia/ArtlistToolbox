@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Artlist Downloader — Settings</title>
+    <link rel="stylesheet" href="options.css">
+  </head>
+  <body>
+    <main class="options">
+      <header class="header">
+        <img src="../icons/icon128.png" alt="" class="logo">
+        <div class="header-text">
+          <h1>Artlist Downloader — Settings</h1>
+          <p>Everything is configurable. The download flow ships disabled by default; page tweaks and library tools work on their own.</p>
+        </div>
+        <span class="version" id="version"></span>
+      </header>
+
+      <section class="card">
+        <h2>Download flow</h2>
+        <div class="row">
+          <div class="row-label">
+            <span>Enable download flow</span>
+            <small>Adds the YouTube MP3 button to Artlist rows. Off by default.</small>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="opt-enabled">
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <div class="row column">
+          <div class="row-label">
+            <span>Default behavior</span>
+            <small>How a click resolves when no modifier key is used.</small>
+          </div>
+          <div class="mode-group" id="opt-flow-modes" role="radiogroup" aria-label="Default behavior">
+            <button type="button" class="mode-option" data-mode="auto" role="radio">Auto</button>
+            <button type="button" class="mode-option" data-mode="ask" role="radio">Ask me</button>
+            <button type="button" class="mode-option" data-mode="search" role="radio">Search only</button>
+          </div>
+          <p class="hint" id="opt-flow-hint"></p>
+        </div>
+
+        <div class="row column">
+          <div class="row-label">
+            <span>Match threshold</span>
+            <small>Minimum score to auto-pick a video in Auto mode.</small>
+          </div>
+          <div class="range-wrap">
+            <input type="range" id="opt-min-score" min="30" max="75" step="5" value="42" aria-label="Match threshold">
+            <span id="opt-min-score-value">42%</span>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="row-label">
+            <span>Open in background</span>
+            <small>Don't focus the tab we open.</small>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="opt-background">
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <div class="row">
+          <div class="row-label">
+            <span>Duration veto</span>
+            <small>In Auto mode, force the manual picker when the video length differs from the Artlist track.</small>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="opt-veto">
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <div class="row">
+          <div class="row-label">
+            <span>Veto tolerance</span>
+            <small>Seconds of difference allowed before asking.</small>
+          </div>
+          <label class="number-field">
+            <input type="number" id="opt-veto-tolerance" min="5" max="120" step="5" value="15">
+            <span>sec</span>
+          </label>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Keywords</h2>
+        <p class="hint">One term per line. Terms are matched as whole words (case and accents are ignored). Clear a list to disable it.</p>
+        <div class="two-col">
+          <div class="col">
+            <h3>Penalized terms</h3>
+            <p class="hint">Videos containing these lose score (unless the Artlist track mentions them too).</p>
+            <textarea id="opt-negative-terms" rows="11" spellcheck="false"></textarea>
+            <button type="button" class="secondary" id="opt-negative-reset">Restore defaults</button>
+          </div>
+          <div class="col">
+            <h3>Preferred terms</h3>
+            <p class="hint">Videos containing these get a small bonus (max +10%).</p>
+            <textarea id="opt-preferred-terms" rows="11" spellcheck="false"></textarea>
+            <button type="button" class="secondary" id="opt-preferred-reset">Restore defaults</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Match memory</h2>
+        <div class="row">
+          <div class="row-label">
+            <span>Remember my picks</span>
+            <small>In Auto mode, reuse the video you chose before for the same track (skips the search).</small>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="opt-memory-enabled">
+            <span class="slider"></span>
+          </label>
+        </div>
+        <p class="hint" id="opt-memory-count"></p>
+        <ul class="entry-list" id="opt-memory-list"></ul>
+        <button type="button" class="secondary danger" id="opt-memory-clear">Clear match memory</button>
+      </section>
+
+      <section class="card">
+        <h2>Processed history</h2>
+        <p class="hint">Tracks that went through the flow at least once. Used to dim rows and warn about repeats.</p>
+        <p class="hint" id="opt-processed-count"></p>
+        <ul class="entry-list" id="opt-processed-list"></ul>
+        <button type="button" class="secondary danger" id="opt-processed-clear">Clear processed history</button>
+      </section>
+
+      <section class="card">
+        <h2>Page &amp; library</h2>
+        <div class="row">
+          <div class="row-label">
+            <span>Hide promo banner</span>
+            <small>Removes the big promo hero on library pages before first paint.</small>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="opt-hide-hero">
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="row">
+          <div class="row-label">
+            <span>Compact rows</span>
+            <small>Tighter track rows so more of the library fits on screen.</small>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="opt-compact">
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="row">
+          <div class="row-label">
+            <span>Dim processed rows</span>
+            <small>Subtly fade tracks you already processed.</small>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="opt-processed-dim">
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="row">
+          <div class="row-label">
+            <span>Keyboard shortcuts</span>
+            <small>d = download hovered · c = copy track info · / = focus search · q = queue mode.</small>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="opt-shortcuts">
+            <span class="slider"></span>
+          </label>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Modifier clicks &amp; menus</h2>
+        <ul class="plain-list">
+          <li><kbd>Alt</kbd> + click — always show the picker for that track.</li>
+          <li><kbd>Shift</kbd> + click — only open the YouTube search for that track.</li>
+          <li><kbd>Ctrl</kbd>/<kbd>Cmd</kbd> + click — copy the resolved YouTube link (no tab).</li>
+          <li>Right click on a track — copy its info from the context menu.</li>
+          <li>Right click on the page — export the visible tracks as CSV.</li>
+        </ul>
+      </section>
+
+      <section class="card">
+        <h2>Stats</h2>
+        <p id="opt-stats-total" class="hint"></p>
+        <ul class="entry-list" id="opt-stats-list"></ul>
+        <button type="button" class="secondary danger" id="opt-stats-reset">Reset stats</button>
+      </section>
+
+      <section class="card">
+        <h2>Config</h2>
+        <div class="button-row">
+          <button type="button" class="secondary" id="opt-export-config">Export config (JSON)</button>
+          <label class="secondary file-label">
+            Import config
+            <input type="file" id="opt-import-config" accept="application/json,.json" hidden>
+          </label>
+          <button type="button" class="secondary" id="opt-export-recent">Export recent (CSV)</button>
+          <button type="button" class="secondary danger" id="opt-restore-defaults">Restore defaults</button>
+        </div>
+        <p class="hint" id="opt-config-status" hidden></p>
+      </section>
+
+      <section class="card">
+        <h2>Diagnostics</h2>
+        <p class="hint" id="opt-diagnostics">Loading…</p>
+        <div class="button-row">
+          <button type="button" class="secondary" id="opt-copy-diagnostics">Copy diagnostics</button>
+          <a class="secondary link-out" href="https://github.com/ciroleguia/ArtlistMusicDownloader" target="_blank" rel="noopener">GitHub repo</a>
+        </div>
+      </section>
+
+      <footer class="footer">
+        developed by <a href="https://github.com/ciroleguia" target="_blank" rel="noopener">Ciro</a>
+        <span class="separator">·</span>
+        <span id="footer-version"></span>
+      </footer>
+    </main>
+    <script type="module" src="options.js"></script>
+  </body>
+</html>

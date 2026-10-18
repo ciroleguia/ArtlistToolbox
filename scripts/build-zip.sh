@@ -13,6 +13,7 @@ zip -r "${OUT}" \
   manifest.json \
   icons \
   popup \
+  options \
   src \
   README.md \
   LICENSE \
