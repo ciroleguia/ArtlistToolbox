@@ -166,3 +166,172 @@ html[data-artlist-toolbox-hide-hero] #app-root div[class~="flex-col"] > div:has(
 html[data-artlist-toolbox-hide-hero] #app-root [data-testid="HeroSection"] {
   display: none !important;
 }
+
+/* "Usada antes" chip inside the YouTube candidate picker. */
+#artlist-y2mate-picker .artlist-y2mate-candidate-badge {
+  align-self: flex-start;
+  background: rgba(249, 219, 84, 0.16);
+  border: 1px solid rgba(249, 219, 84, 0.5);
+  border-radius: 999px;
+  color: #f9db54;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  margin-top: 2px;
+  padding: 1px 7px;
+  text-transform: uppercase;
+}
+
+/*
+ * "Compact rows" page tweak. Rows tagged by content.js get tighter vertical
+ * padding; harmless no-op when Artlist changes its internal markup.
+ */
+html[data-artlist-toolbox-compact] [data-artlist-toolbox-row] {
+  min-height: 0 !important;
+}
+
+html[data-artlist-toolbox-compact] [data-artlist-toolbox-row] > * {
+  padding-bottom: 2px !important;
+  padding-top: 2px !important;
+}
+
+html[data-artlist-toolbox-compact] [data-artlist-toolbox-row] [class*="py-"] {
+  padding-bottom: 2px !important;
+  padding-top: 2px !important;
+}
+
+/* "Processed" dimming: rows already sent through the flow at least once. */
+html[data-artlist-toolbox-dim] [data-artlist-toolbox-row][data-artlist-toolbox-processed] {
+  opacity: 0.6;
+}
+
+/* Toast notifications (copy, queue summaries, warnings). */
+#artlist-toolbox-toast {
+  background: #14161b;
+  border: 1px solid #2a2f3a;
+  border-radius: 10px;
+  bottom: 18px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
+  color: #f8fafc;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  left: 50%;
+  max-width: min(520px, calc(100vw - 24px));
+  opacity: 0;
+  padding: 9px 14px;
+  pointer-events: none;
+  position: fixed;
+  transform: translate(-50%, 8px);
+  transition: opacity 0.16s ease, transform 0.16s ease;
+  z-index: 2147483647;
+}
+
+#artlist-toolbox-toast.visible {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+#artlist-toolbox-toast[data-tone="ok"] {
+  border-color: rgba(22, 163, 74, 0.7);
+}
+
+#artlist-toolbox-toast[data-tone="warn"] {
+  border-color: rgba(220, 38, 38, 0.7);
+}
+
+/*
+ * Batch queue: selection outlines + floating control bar.
+ */
+html[data-artlist-toolbox-select] [data-artlist-toolbox-row] {
+  cursor: crosshair;
+}
+
+[data-artlist-toolbox-row][data-artlist-toolbox-queued] {
+  outline: 2px solid #f9db54 !important;
+  outline-offset: -2px;
+}
+
+[data-artlist-toolbox-row][data-artlist-toolbox-queue-state="processing"] {
+  outline-color: #60a5fa !important;
+}
+
+[data-artlist-toolbox-row][data-artlist-toolbox-queue-state="done"] {
+  outline: 2px solid rgba(22, 163, 74, 0.75) !important;
+  outline-offset: -2px;
+}
+
+[data-artlist-toolbox-row][data-artlist-toolbox-queue-state="search"] {
+  outline: 2px solid rgba(96, 165, 250, 0.75) !important;
+  outline-offset: -2px;
+}
+
+[data-artlist-toolbox-row][data-artlist-toolbox-queue-state="error"] {
+  outline: 2px solid rgba(220, 38, 38, 0.75) !important;
+  outline-offset: -2px;
+}
+
+#artlist-toolbox-queue-bar {
+  align-items: center;
+  background: #14161b;
+  border: 1px solid #2a2f3a;
+  border-radius: 12px;
+  bottom: 18px;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.5);
+  color: #f8fafc;
+  display: flex;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, sans-serif;
+  gap: 8px;
+  max-width: min(560px, calc(100vw - 24px));
+  padding: 9px 11px;
+  position: fixed;
+  right: 18px;
+  z-index: 2147483647;
+}
+
+#artlist-toolbox-queue-bar .artlist-toolbox-queue-status {
+  color: #cbd5e1;
+  flex: 1 1 auto;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.3;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#artlist-toolbox-queue-bar .artlist-toolbox-queue-button {
+  background: transparent;
+  border: 1px solid #3a4150;
+  border-radius: 7px;
+  color: #cbd5e1;
+  cursor: pointer;
+  flex: 0 0 auto;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 11px;
+}
+
+#artlist-toolbox-queue-bar .artlist-toolbox-queue-button:hover:not(:disabled) {
+  border-color: #f9db54;
+  color: #f9db54;
+}
+
+#artlist-toolbox-queue-bar .artlist-toolbox-queue-button.primary {
+  background: #f9db54;
+  border-color: #f9db54;
+  color: #14161b;
+}
+
+#artlist-toolbox-queue-bar .artlist-toolbox-queue-button.primary:hover:not(:disabled) {
+  background: #fbe27a;
+  border-color: #fbe27a;
+  color: #14161b;
+}
+
+#artlist-toolbox-queue-bar .artlist-toolbox-queue-button:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
