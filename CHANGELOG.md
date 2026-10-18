@@ -28,6 +28,7 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 - El popup se reorganizó: master switch, modos, umbral, toggles de página, exportar CSV, estadísticas y acceso a Ajustes.
 - La extensión pasa a llamarse **Artlist Toolbox** (antes *Artlist Downloader*); el acceso a Ajustes es ahora un icono de engranaje en la cabecera del panel, junto al nombre.
 - El botón **Open Artlist Music** se movió al inicio del panel, por encima del master switch.
+- El toggle **Open in background** pasó al final de la lista de toggles del panel.
 - El botón **Export visible tracks (CSV)** del panel queda oculto por defecto; se activa desde la nueva sección **Advanced** de Ajustes. El export por menú contextual sigue siempre disponible.
 - Los tests pasan a 34 casos (términos personalizados, veto por duración, fingerprints y CSV).
 
