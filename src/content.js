@@ -3,6 +3,7 @@ const ACTIVE_DOWNLOAD_CLASS = "artlist-youtube-mp3-download-active";
 const DOWNLOAD_ATTR = "data-artlist-youtube-mp3-download";
 const PICKER_ID = "artlist-y2mate-picker";
 const HIDE_HERO_ATTR = "data-artlist-toolbox-hide-hero";
+const HIDE_HERO_CACHE_KEY = "artlistToolbox:hideHeroBanner";
 const SCAN_DEBOUNCE_MS = 250;
 const BOOTSTRAP_SCAN_COUNT = 12;
 const MAX_ROOTS_PER_SCAN = 30;
@@ -213,6 +214,11 @@ function enhanceDownloadButtons(root = document) {
 function applyPageTweaks() {
   const shouldHideHero = extensionEnabled && hideHeroBanner;
   document.documentElement.toggleAttribute(HIDE_HERO_ATTR, shouldHideHero);
+  try {
+    window.localStorage.setItem(HIDE_HERO_CACHE_KEY, shouldHideHero ? "1" : "0");
+  } catch (error) {
+    // localStorage unavailable: early-guard.js will simply skip pre-hiding.
+  }
 }
 
 function removeEnhancements() {

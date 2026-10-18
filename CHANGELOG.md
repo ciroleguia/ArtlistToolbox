@@ -8,6 +8,9 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 ### Added
 - Interruptor **Hide promo banner** en el panel: oculta el hero de promoción (título, CTAs y logos) en las bibliotecas de música y SFX de Artlist para dar más espacio a la lista de contenidos. No afecta a la barra de navegación ni a las tablas de pistas.
 
+### Changed
+- El hero promocional se oculta **antes del primer render**, sin parpadeo: un guard de página (`src/early-guard.js`) corre en `document_start` y aplica el ajuste síncronamente usando una caché local del valor efectivo; el resto de la lógica de la extensión sigue ejecutándose en `document_idle` como antes.
+
 ## [0.5.0] - 2026-10-15
 
 ### Added

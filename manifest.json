@@ -18,8 +18,14 @@
   "content_scripts": [
     {
       "matches": ["https://artlist.io/*", "https://*.artlist.io/*"],
-      "js": ["src/content.js"],
+      "js": ["src/early-guard.js"],
       "css": ["src/styles.css"],
+      "run_at": "document_start",
+      "all_frames": true
+    },
+    {
+      "matches": ["https://artlist.io/*", "https://*.artlist.io/*"],
+      "js": ["src/content.js"],
       "run_at": "document_idle",
       "all_frames": true
     }
