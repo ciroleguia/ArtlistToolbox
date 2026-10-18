@@ -202,6 +202,13 @@ function flushScanQueue() {
 }
 
 function tagTrackRows(root = document) {
+  // Artlist music lists expose a stable testid per row; tag it directly so
+  // row features (queue, dimming, CSV) do not depend on the link-climbing
+  // heuristic alone.
+  queryWithinRoot(root, "[data-testid='music-row']").forEach((row) => {
+    row.setAttribute(ROW_ATTR, "true");
+  });
+
   queryWithinRoot(root, "a[href*='/royalty-free-music/song/'], a[href*='/song/']").forEach((link) => {
     const row = findTrackRowFromElement(link);
     if (row) {

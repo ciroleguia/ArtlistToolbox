@@ -183,21 +183,23 @@ html[data-artlist-toolbox-hide-hero] #app-root [data-testid="HeroSection"] {
 }
 
 /*
- * "Compact rows" page tweak. Rows tagged by content.js get tighter vertical
- * padding; harmless no-op when Artlist changes its internal markup.
+ * "Compact rows" page tweak. Anchors verified against the live app (2026-10):
+ *   - Music lists: [data-testid="music-row"] carries its own p-4 padding
+ *     (16px top/bottom over a ~50px content): 82px -> 58px per row.
+ *   - SFX table: [data-testid="AudioRow"] td wrappers use p-5 / py-5
+ *     (20px top/bottom): 93px -> 61px per row.
+ * Only these known paddings are shrunk; nothing here can add spacing, so a
+ * markup change degrades to a no-op instead of growing the rows.
  */
-html[data-artlist-toolbox-compact] [data-artlist-toolbox-row] {
-  min-height: 0 !important;
+html[data-artlist-toolbox-compact] [data-testid="music-row"] {
+  padding-bottom: 4px !important;
+  padding-top: 4px !important;
 }
 
-html[data-artlist-toolbox-compact] [data-artlist-toolbox-row] > * {
-  padding-bottom: 2px !important;
-  padding-top: 2px !important;
-}
-
-html[data-artlist-toolbox-compact] [data-artlist-toolbox-row] [class*="py-"] {
-  padding-bottom: 2px !important;
-  padding-top: 2px !important;
+html[data-artlist-toolbox-compact] [data-testid="AudioRow"] td > div.p-5,
+html[data-artlist-toolbox-compact] [data-testid="AudioRow"] td > div.py-5 {
+  padding-bottom: 4px !important;
+  padding-top: 4px !important;
 }
 
 /* "Processed" dimming: rows already sent through the flow at least once. */
