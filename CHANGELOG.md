@@ -26,6 +26,7 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 - El interruptor **Enable Downloader** ahora controla únicamente el flujo de descarga (botones, matching y apertura de pestañas); los ajustes de página como **Hide promo banner** son independientes y siguen activos con el flujo desactivado.
 - El hero promocional se oculta **antes del primer render**, sin parpadeo: un guard de página (`src/early-guard.js`) corre en `document_start` y aplica el ajuste síncronamente usando una caché local del valor efectivo; el resto de la lógica de la extensión sigue ejecutándose en `document_idle` como antes.
 - El popup se reorganizó: master switch, modos, umbral, toggles de página, exportar CSV, estadísticas y acceso a Ajustes.
+- La extensión pasa a llamarse **Artlist Toolbox** (antes *Artlist Downloader*); el acceso a Ajustes es ahora un icono de engranaje en la cabecera del panel, junto al nombre.
 - Los tests pasan a 34 casos (términos personalizados, veto por duración, fingerprints y CSV).
 
 ### Fixed

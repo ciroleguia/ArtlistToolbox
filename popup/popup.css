@@ -26,6 +26,38 @@ body {
   width: 42px;
 }
 
+.header-copy {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.icon-button {
+  align-items: center;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: #8b95a8;
+  cursor: pointer;
+  display: inline-flex;
+  flex: 0 0 auto;
+  height: 28px;
+  justify-content: center;
+  padding: 0;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  width: 28px;
+}
+
+.icon-button:hover {
+  background: rgba(249, 219, 84, 0.12);
+  border-color: rgba(249, 219, 84, 0.35);
+  color: #f9db54;
+}
+
+.icon-button:focus-visible {
+  outline: 2px solid #f9db54;
+  outline-offset: 2px;
+}
+
 h1 {
   font-size: 15px;
   line-height: 1.2;
@@ -115,23 +147,6 @@ p {
 
 #stats-line[hidden] {
   display: none;
-}
-
-.link-button {
-  background: none;
-  border: 0;
-  color: #f9db54;
-  cursor: pointer;
-  font: 600 11px/1 system-ui, sans-serif;
-  padding: 0;
-}
-
-.link-button:hover {
-  text-decoration: underline;
-}
-
-.credits .separator {
-  margin: 0 4px;
 }
 
 .settings-row {
@@ -439,5 +454,15 @@ input:checked + .slider:before {
   .popup-status,
   .stats-line {
     color: #6b7383;
+  }
+
+  .icon-button {
+    color: #6b7383;
+  }
+
+  .icon-button:hover {
+    background: rgba(15, 17, 21, 0.06);
+    border-color: rgba(15, 17, 21, 0.2);
+    color: #14161b;
   }
 }

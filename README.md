@@ -1,7 +1,7 @@
-# 🎵 Artlist Downloader
+# 🎵 Artlist Toolbox
 
 <p align="center">
-  <img src="icons/icon128.png" width="100" height="100" alt="Artlist Downloader Logo">
+  <img src="icons/icon128.png" width="100" height="100" alt="Artlist Toolbox Logo">
 </p>
 
 <p align="center">
@@ -19,7 +19,7 @@
 
 ## 📖 Descripción
 
-**Artlist Downloader** es una extensión de navegador (Manifest V3) creada para mejorar el flujo de trabajo en [Artlist.io](https://artlist.io). Funciona como una **caja de herramientas de biblioteca** (modo compacto, copiar info de pistas, atajos, exportar CSV, cola por lotes) y suma un **flujo opcional de descarga MP3** que intercepta los botones de descarga de las pistas para buscar de forma automática e inteligente la coincidencia más precisa (título, artista y duración) en YouTube y abrir directamente el conversor. El flujo de descarga viene **desactivado por defecto** y todo su comportamiento es configurable desde la página de Ajustes.
+**Artlist Toolbox** es una extensión de navegador (Manifest V3) creada para mejorar el flujo de trabajo en [Artlist.io](https://artlist.io). El repositorio conserva el nombre histórico `ArtlistMusicDownloader`. Funciona como una **caja de herramientas de biblioteca** (modo compacto, copiar info de pistas, atajos, exportar CSV, cola por lotes) y suma un **flujo opcional de descarga MP3** que intercepta los botones de descarga de las pistas para buscar de forma automática e inteligente la coincidencia más precisa (título, artista y duración) en YouTube y abrir directamente el conversor. El flujo de descarga viene **desactivado por defecto** y todo su comportamiento es configurable desde la página de Ajustes.
 
 ---
 

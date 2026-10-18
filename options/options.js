@@ -389,7 +389,7 @@ async function exportConfig() {
 
   downloadTextFile(
     JSON.stringify(config, null, 2),
-    "artlist-downloader-config.json",
+    "artlist-toolbox-config.json",
     "application/json"
   );
   setConfigStatus("Config exported.");
@@ -407,7 +407,7 @@ async function importConfigFile(event) {
     const clean = sanitizeImportedConfig(raw);
     const keys = Object.keys(clean);
     if (!keys.length) {
-      setConfigStatus("That file does not look like an Artlist Downloader config.", true);
+      setConfigStatus("That file does not look like an Artlist Toolbox config.", true);
       return;
     }
 
