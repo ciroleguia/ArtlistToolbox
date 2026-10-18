@@ -181,9 +181,14 @@ function renderRecent(items = []) {
 function renderStats(stats = {}) {
   const total = Number(stats?.total) || 0;
   if (!total) {
-    statsLine.textContent = "No downloads recorded yet.";
+    // The Recent downloads section already has its own empty state; keep a
+    // single message instead of two stacked variants.
+    statsLine.textContent = "";
+    statsLine.hidden = true;
     return;
   }
+
+  statsLine.hidden = false;
 
   const daily = stats?.daily || {};
   const cutoff = localDateKey(new Date(Date.now() - 6 * 86400000));

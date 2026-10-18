@@ -30,6 +30,7 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ### Fixed
 - **Modo compacto**: las filas ya no se agrandan. Las reglas genéricas anteriores podían *añadir* padding; ahora solo se reducen los paddings verticales reales verificados en la app: filas de música (`music-row`, 82→58 px) y tabla SFX (`AudioRow`, 93→61 px). Además, las filas de música se etiquetan por su `data-testid` estable, sin depender solo de la heurística por enlaces.
+- **Popup**: se eliminó el estado vacío duplicado en *Recent downloads*; la lista ahora dice "No recent downloads." y la línea de estadísticas solo aparece cuando hay descargas registradas.
 
 ## [0.5.0] - 2026-10-15
 
