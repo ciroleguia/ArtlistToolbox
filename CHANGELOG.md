@@ -3,14 +3,30 @@
 Todos los cambios notables de este proyecto se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y el proyecto usa [Versionado Semántico](https://semver.org/lang/es/).
 
-## [Unreleased]
+## [0.6.0] - 2026-10-18
 
 ### Added
-- Interruptor **Hide promo banner** en el panel: oculta el hero de promoción (título, CTAs y logos) en las bibliotecas de música y SFX de Artlist para dar más espacio a la lista de contenidos. No afecta a la barra de navegación ni a las tablas de pistas.
+- **Flujo de descarga desactivado por defecto**: la extensión ahora funciona primero como caja de herramientas de biblioteca; el flujo de YouTube MP3 se activa explícitamente desde el panel o los ajustes. Las instalaciones existentes conservan su valor guardado.
+- **Página de Ajustes completa** (`options/`) con absolutamente todo configurable: flujo, modo por defecto, umbral, apertura en segundo plano, veto por duración y su tolerancia, términos penalizados/preferidos, memoria, historial, ajustes de página, estadísticas, import/export de configuración y diagnóstico.
+- **Memoria de matches**: recuerda el video elegido para cada pista (título + artista, hasta 500 entradas) y en modo Auto abre el conversor directamente, sin repetir la búsqueda. Se gestiona desde los ajustes (listado + borrado individual o total).
+- **Veto por duración**: si la duración del mejor resultado difiere más de lo permitido (15 s por defecto, configurable), el modo Auto abre el picker en lugar de decidir solo.
+- **Términos personalizados**: las listas de términos penalizados y preferidos son editables desde los ajustes (uno por línea), con restauración de valores por defecto.
+- **Clics modificadores**: Alt+clic fuerza el picker, Shift+clic abre solo la búsqueda y Ctrl/Cmd+clic copia el link de YouTube resuelto sin abrir pestañas.
+- **Atajos de teclado** (desactivables): `d` descarga la fila bajo el cursor, `c` copia su información, `/` enfoca el buscador y `q` activa el modo cola.
+- **Copiar info de pista**: formato "Artista - Título (m:ss)" vía atajo `c` o menú contextual.
+- **Modo compacto**: filas de la biblioteca más densas para ver más pistas por pantalla.
+- **Historial de procesadas**: las pistas que ya pasaron por el flujo se atenúan (opcional) y avisan al repetirse.
+- **Cola por lotes**: modo selección (`q` o desde el flujo), barra flotante con progreso, procesado secuencial en segundo plano (memoria y veto incluidos, pestañas en segundo plano) y resumen final con contadores. Cancelable.
+- **Exportar CSV**: pistas visibles (botón del panel + menú contextual) y descargas recientes (ajustes). La columna de YouTube se enriquece desde la memoria/historial cuando se conoce el video.
+- **Estadísticas**: total de descargas y desglose por día (últimos 14 días), visibles en panel y ajustes, con reseteo.
+- **Menú contextual** en páginas de Artlist: copiar info de pista y exportar pistas visibles.
+- Badge **"Usada antes"** en el picker para el video recordado, y el picker ahora también alimenta la memoria (aprende de cada elección manual).
 
 ### Changed
-- El hero promocional se oculta **antes del primer render**, sin parpadeo: un guard de página (`src/early-guard.js`) corre en `document_start` y aplica el ajuste síncronamente usando una caché local del valor efectivo; el resto de la lógica de la extensión sigue ejecutándose en `document_idle` como antes.
 - El interruptor **Enable Downloader** ahora controla únicamente el flujo de descarga (botones, matching y apertura de pestañas); los ajustes de página como **Hide promo banner** son independientes y siguen activos con el flujo desactivado.
+- El hero promocional se oculta **antes del primer render**, sin parpadeo: un guard de página (`src/early-guard.js`) corre en `document_start` y aplica el ajuste síncronamente usando una caché local del valor efectivo; el resto de la lógica de la extensión sigue ejecutándose en `document_idle` como antes.
+- El popup se reorganizó: master switch, modos, umbral, toggles de página, exportar CSV, estadísticas y acceso a Ajustes.
+- Los tests pasan a 34 casos (términos personalizados, veto por duración, fingerprints y CSV).
 
 ## [0.5.0] - 2026-10-15
 
