@@ -39,7 +39,7 @@
 - 📏 **Modo Compacto**: Filas más densas para ver más pistas por pantalla.
 - ✅ **Historial de Procesadas**: Las pistas que ya pasaron por el flujo se atenúan (opcional) y avisan al repetirse.
 - 📦 **Cola por Lotes**: Modo selección con barra flotante, procesado secuencial en segundo plano (aplica memoria y veto) y resumen final con contadores. Cancelable en cualquier momento.
-- 📤 **Exportar CSV**: Pistas visibles (botón del panel + menú contextual) y descargas recientes (ajustes), con enlace de YouTube enriquecido desde la memoria/historial.
+- 📤 **Exportar CSV**: Pistas visibles (botón opcional del panel, activable en Ajustes → Advanced, + menú contextual) y descargas recientes (ajustes), con enlace de YouTube enriquecido desde la memoria/historial.
 - 📊 **Estadísticas**: Total de descargas y desglose de los últimos 14 días, visibles en el panel y en los ajustes.
 - 🧹 **Ocultar Banner Promocional (Opcional)**: Interruptor que elimina el hero de promoción de las páginas de biblioteca antes del primer render, dejando más espacio para la lista de canciones sin afectar la navegación ni la tabla de pistas, e independientemente del interruptor principal.
 - 💬 **Tooltip Dinámico con Información de Pista**: Al pasar el cursor sobre el botón de descarga, muestra un tooltip flotante con el título y artista detectados antes de hacer clic.
@@ -94,13 +94,14 @@ La extensión se puede instalar fácilmente en **Google Chrome**, **Brave**, **M
 
 ## ⚙️ Página de Ajustes
 
-Accesible desde el enlace **Settings** del panel (o automáticamente en Ajustes de la extensión). Secciones:
+Accesible desde el icono de engranaje (⚙) de la cabecera del panel (o automáticamente en Ajustes de la extensión). Secciones:
 
 - **Download flow**: master switch, modo por defecto, umbral, apertura en segundo plano, veto por duración y su tolerancia.
 - **Keywords**: términos penalizados y preferidos (uno por línea) con restauración de valores por defecto.
 - **Match memory**: interruptor de memoria + listado de los últimos matches recordados con borrado individual.
 - **Processed history**: pistas ya procesadas (usadas para la atenuación y el aviso de repetidas), con borrado individual o total.
 - **Page & library**: hide promo banner, modo compacto, atenuación de procesadas y atajos de teclado.
+- **Advanced**: mostrar u ocultar el botón de exportar CSV en el panel (oculto por defecto).
 - **Modifier clicks & menus**: referencia rápida de los clics modificadores y del menú contextual.
 - **Stats**: total y desglose diario de los últimos 14 días, con reseteo.
 - **Config**: export/import de la configuración completa en JSON, export de recientes a CSV y restauración de valores por defecto.

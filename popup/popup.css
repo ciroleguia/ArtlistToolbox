@@ -79,6 +79,7 @@ p {
   cursor: pointer;
   font: 700 13px/1 system-ui, sans-serif;
   letter-spacing: 0;
+  margin-bottom: 12px;
   padding: 11px 12px;
   width: 100%;
 }
@@ -126,6 +127,10 @@ p {
 .secondary-button:hover {
   border-color: #f9db54;
   color: #f9db54;
+}
+
+#export-csv[hidden] {
+  display: none;
 }
 
 .popup-status {

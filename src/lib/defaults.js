@@ -29,7 +29,10 @@ export const DEFAULT_SETTINGS = {
   hideHeroBanner: false,
   compactRows: false,
   keyboardShortcuts: true,
-  processedDim: true
+  processedDim: true,
+
+  // Popup UI
+  popupExportButton: false // CSV export button in the popup (advanced opt-in)
 };
 
 export const RECENT_LIMIT = 10;
@@ -51,7 +54,8 @@ export const CONFIG_KEYS = [
   "hideHeroBanner",
   "compactRows",
   "keyboardShortcuts",
-  "processedDim"
+  "processedDim",
+  "popupExportButton"
 ];
 
 export { DEFAULT_PREFERRED_TERMS, NEGATIVE_TERMS };

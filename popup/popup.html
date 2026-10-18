@@ -12,7 +12,7 @@
         <img src="../icons/icon48.png" alt="" class="logo">
         <div class="header-copy">
           <h1>Artlist Toolbox</h1>
-          <p>Library tools plus an optional YouTube MP3 flow.</p>
+          <p>Library tools for Artlist.</p>
         </div>
         <button id="open-options" class="icon-button" type="button" aria-label="Settings" title="Settings">
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
@@ -21,6 +21,10 @@
           </svg>
         </button>
       </header>
+
+      <button id="open-artlist" class="primary-button" type="button">
+        Open Artlist Music
+      </button>
 
       <div class="settings-row">
         <div class="settings-label">
@@ -86,11 +90,7 @@
         </label>
       </div>
 
-      <button id="open-artlist" class="primary-button" type="button">
-        Open Artlist Music
-      </button>
-
-      <button id="export-csv" class="secondary-button" type="button">
+      <button id="export-csv" class="secondary-button" type="button" hidden>
         Export visible tracks (CSV)
       </button>
       <p id="popup-status" class="popup-status" hidden></p>

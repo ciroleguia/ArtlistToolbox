@@ -19,6 +19,7 @@ const POPUP_KEYS = [
   "openInBackground",
   "hideHeroBanner",
   "compactRows",
+  "popupExportButton",
   "minScore",
   "recent",
   "stats"
@@ -48,6 +49,7 @@ chrome.storage.local.get(popupDefaults, (items) => {
   backgroundCheckbox.checked = Boolean(items.openInBackground);
   hideHeroCheckbox.checked = Boolean(items.hideHeroBanner);
   compactCheckbox.checked = Boolean(items.compactRows);
+  exportButton.hidden = !items.popupExportButton;
   minScoreInput.value = Math.round(items.minScore * 100);
   thresholdValue.textContent = `${Math.round(items.minScore * 100)}%`;
 
@@ -131,6 +133,9 @@ document.getElementById("clear-recent").addEventListener("click", () => {
 });
 
 chrome.storage.onChanged.addListener((changes) => {
+  if (changes.popupExportButton) {
+    exportButton.hidden = !changes.popupExportButton.newValue;
+  }
   if (changes.recent) {
     renderRecent(changes.recent.newValue || []);
   }

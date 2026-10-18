@@ -17,7 +17,7 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 - **Modo compacto**: filas de la biblioteca más densas para ver más pistas por pantalla.
 - **Historial de procesadas**: las pistas que ya pasaron por el flujo se atenúan (opcional) y avisan al repetirse.
 - **Cola por lotes**: modo selección (`q` o desde el flujo), barra flotante con progreso, procesado secuencial en segundo plano (memoria y veto incluidos, pestañas en segundo plano) y resumen final con contadores. Cancelable.
-- **Exportar CSV**: pistas visibles (botón del panel + menú contextual) y descargas recientes (ajustes). La columna de YouTube se enriquece desde la memoria/historial cuando se conoce el video.
+- **Exportar CSV**: pistas visibles (botón opcional del panel + menú contextual) y descargas recientes (ajustes). La columna de YouTube se enriquece desde la memoria/historial cuando se conoce el video.
 - **Estadísticas**: total de descargas y desglose por día (últimos 14 días), visibles en panel y ajustes, con reseteo.
 - **Menú contextual** en páginas de Artlist: copiar info de pista y exportar pistas visibles.
 - Badge **"Usada antes"** en el picker para el video recordado, y el picker ahora también alimenta la memoria (aprende de cada elección manual).
@@ -27,6 +27,8 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 - El hero promocional se oculta **antes del primer render**, sin parpadeo: un guard de página (`src/early-guard.js`) corre en `document_start` y aplica el ajuste síncronamente usando una caché local del valor efectivo; el resto de la lógica de la extensión sigue ejecutándose en `document_idle` como antes.
 - El popup se reorganizó: master switch, modos, umbral, toggles de página, exportar CSV, estadísticas y acceso a Ajustes.
 - La extensión pasa a llamarse **Artlist Toolbox** (antes *Artlist Downloader*); el acceso a Ajustes es ahora un icono de engranaje en la cabecera del panel, junto al nombre.
+- El botón **Open Artlist Music** se movió al inicio del panel, por encima del master switch.
+- El botón **Export visible tracks (CSV)** del panel queda oculto por defecto; se activa desde la nueva sección **Advanced** de Ajustes. El export por menú contextual sigue siempre disponible.
 - Los tests pasan a 34 casos (términos personalizados, veto por duración, fingerprints y CSV).
 
 ### Fixed

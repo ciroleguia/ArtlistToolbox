@@ -40,6 +40,7 @@ const els = {
   compact: document.getElementById("opt-compact"),
   processedDim: document.getElementById("opt-processed-dim"),
   shortcuts: document.getElementById("opt-shortcuts"),
+  popupExport: document.getElementById("opt-popup-export"),
   statsTotal: document.getElementById("opt-stats-total"),
   statsList: document.getElementById("opt-stats-list"),
   statsReset: document.getElementById("opt-stats-reset"),
@@ -82,6 +83,7 @@ function applyToUi() {
   els.compact.checked = Boolean(state.compactRows);
   els.processedDim.checked = state.processedDim !== false;
   els.shortcuts.checked = state.keyboardShortcuts !== false;
+  els.popupExport.checked = Boolean(state.popupExportButton);
 
   const percent = Math.round((Number(state.minScore) || DEFAULT_SETTINGS.minScore) * 100);
   els.minScore.value = percent;
@@ -106,6 +108,7 @@ function bindEvents() {
   bindToggle("opt-compact", "compactRows");
   bindToggle("opt-processed-dim", "processedDim");
   bindToggle("opt-shortcuts", "keyboardShortcuts");
+  bindToggle("opt-popup-export", "popupExportButton");
 
   els.minScore.addEventListener("input", () => {
     els.minScoreValue.textContent = `${els.minScore.value}%`;
