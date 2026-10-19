@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  Library tools for Artlist, plus an optional YouTube MP3 workflow.
+  Library tools for Artlist.
 </p>
 
 <p align="center">
