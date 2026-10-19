@@ -29,7 +29,7 @@ The extension runs from source and has no runtime dependencies.
 
 1. Download the repository as a ZIP, or clone it:
    ```bash
-   git clone https://github.com/ciroleguia/ArtlistMusicDownloader.git
+   git clone https://github.com/ciroleguia/ArtlistToolbox.git
    ```
 2. Open `chrome://extensions`. In Brave, use `brave://extensions`. In Edge, use `edge://extensions`.
 3. Turn on Developer mode.
