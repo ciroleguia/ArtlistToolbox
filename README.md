@@ -116,7 +116,7 @@ Node.js 20 or newer is required for the repository scripts. The extension itself
 ```bash
 npm test      # Unit tests for matching, toolbox helpers, and YouTube parsing
 npm run check # Syntax checks and manifest file validation
-npm run zip   # Builds dist/ArtlistMusicDownloader-v<version>.zip
+npm run zip   # Builds dist/ArtlistToolbox-v<version>.zip
 ```
 
 GitHub Actions runs `npm run check` and `npm test` on pushes to `main` and on pull requests. A pushed `v*` tag runs the release workflow, builds the zip, and attaches it to a GitHub Release.
@@ -128,10 +128,6 @@ Open an issue for a bug or a feature request. Pull requests should pass `npm tes
 If this project looks useful to you, a ⭐ would mean a lot and it helps others discover it too. :)
 
 If you want to sponsor my projects for creatives, [contact me](mailto:ciroaleguia@gmail.com).
-
-## Changelog
-
-Release notes live in [CHANGELOG.md](CHANGELOG.md).
 
 ## License
 
