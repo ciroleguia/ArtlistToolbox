@@ -31,6 +31,10 @@ export const DEFAULT_SETTINGS = {
   keyboardShortcuts: true,
   processedDim: true,
 
+  // Track rankings (page tool, independent of the download flow)
+  rankingsEnabled: true,
+  rankings: {},
+
   // Popup UI
   popupExportButton: false // CSV export button in the popup (advanced opt-in)
 };
@@ -55,6 +59,7 @@ export const CONFIG_KEYS = [
   "compactRows",
   "keyboardShortcuts",
   "processedDim",
+  "rankingsEnabled",
   "popupExportButton"
 ];
 

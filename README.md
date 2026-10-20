@@ -10,15 +10,15 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/Manifest-V3-blue.svg" alt="Manifest V3">
-  <img src="https://img.shields.io/badge/Version-0.6.0-brightgreen.svg" alt="Version 0.6.0">
+  <img src="https://img.shields.io/badge/Version-0.7.0-brightgreen.svg" alt="Version 0.7.0">
   <img src="https://img.shields.io/badge/License-MIT-orange.svg" alt="License MIT">
 </p>
 
-Artlist Toolbox is a Manifest V3 extension for [Artlist](https://artlist.io). It adds library tools to the music pages and a flow that searches YouTube for a track (in backend) and opens the y2mate.gs MP3 converter with the selected video.
+Artlist Toolbox is a Manifest V3 extension for [Artlist](https://artlist.io). It adds library tools to the music pages, including 5-star track rankings, and a flow that searches YouTube for a track (in backend) and opens the y2mate.gs MP3 converter with the selected video.
 
 It's just a tool I made to optimize my daily workflow at my video editing job, and I share it to you all if it can help you as it does for me. :)
 
-The download flow is off by default. The page tools and the download flow are separate. Compact rows, the promo banner switch, copying track details, CSV export, and processed-track dimming work with the flow disabled. Actions that open the converter, the result picker, or the queue need the flow enabled.
+The download flow is off by default. The page tools and the download flow are separate. Compact rows, the promo banner switch, copying track details, CSV export, processed-track dimming, and track rankings work with the flow disabled. Actions that open the converter, the result picker, or the queue need the flow enabled.
 
 ## Requirements
 
@@ -38,7 +38,7 @@ The extension runs from source and has no runtime dependencies.
 
 ## Use
 
-Open the extension popup from the toolbar to see the main settings, then there's a gear icon opens the extended settings page too.
+Open the extension popup from the toolbar to see the main settings. The gear icon opens the extended settings page, and the star icon opens the Rankings page.
 
 ### Page tools
 
@@ -46,12 +46,25 @@ Keyboard shortcuts are on by default. You can turn them off in Settings, Page an
 
 - `c` copies the track under the cursor as `Artist - Title (m:ss)`.
 - `/` focuses the library search field.
+- `1`–`5` rates the track under the cursor; `0` clears the rating. `f` toggles Focus favorites, which dims rows below 4 stars so your favorites stand out.
 - Compact rows reduce the vertical padding of music rows and the sound effects table.
 - Hide promo banner removes the promotional hero from library pages. It leaves the navigation bar and the track list in place.
 - Processed tracks can be dimmed from the stored history.
+- Rated rows get a colored left accent and a `★★★★☆` badge. Ratings are stored locally by title and artist.
+- The star icon in the popup opens the Rankings page: search, sort, filter, edit, remove, export CSV, and clear all.
 - The right-click menu can copy the current track details or export the visible tracks to CSV on Artlist pages.
-- CSV export uses the columns Title, Artist, Duration, Artlist URL, and YouTube URL. The extension fills the YouTube column from match memory or the processed history when it knows the video. The popup button is hidden until you enable it in Settings, Advanced. The context-menu export is always available.
-- The popup shows the total download count and a 14-day breakdown.
+- CSV export uses the columns Title, Artist, Duration, Artlist URL, YouTube URL, and Rating. The extension fills the YouTube column from match memory or the processed history when it knows the video, and the Rating column from your ranking. The popup button is hidden until you enable it in Settings, Advanced. The context-menu export is always available.
+- The popup shows the total download count and a 14-day breakdown; the star icon badge shows how many tracks you have ranked.
+
+### Track rankings
+
+Hover a track and press `1`–`5` to rate it, or `0` to clear the rating. A floating star bar also appears under the hovered row if you prefer clicking. Ratings are keyed by the normalized title and artist, so the same song keeps its rating across library pages.
+
+- 4–5 star rows get a warm accent and stay readable even when they are in processed history.
+- Press `f` to toggle **Focus favorites**: rows below 4 stars (and unrated rows) dim, so your top picks jump out. It does not reorder or hide rows.
+- The star icon in the popup opens the **Rankings** page. There you can search, sort by rating or date, filter by star count, edit or remove ratings, open tracks on Artlist, export a rankings CSV, and clear everything.
+- Ratings are local to `chrome.storage.local`. They work with the download flow disabled.
+- The popup and Settings both have a Track rankings switch.
 
 ### Download flow
 
@@ -90,6 +103,7 @@ Open the settings page with the gear icon in the popup, or from the extension en
 | Match memory | The memory switch and the list of remembered videos, with individual and bulk delete. |
 | Processed history | Tracks that already went through the flow, with individual and bulk delete. |
 | Page and library | Promo banner, compact rows, processed dimming, and keyboard shortcuts. |
+| Track rankings | Enable or disable ratings, see the ranked count, open the Rankings page, and clear all rankings. |
 | Advanced | The optional CSV button in the popup. |
 | Modifier clicks and menus | A reference for the modifier clicks and the context-menu actions. |
 | Stats | Download total, the 14-day breakdown, and a reset button. |
@@ -101,7 +115,7 @@ Open the settings page with the gear icon in the popup, or from the extension en
 | Permission | Why the extension needs it |
 |---|---|
 | `tabs` | Opens the YouTube and y2mate tabs, and sends messages to Artlist tabs. |
-| `storage` | Keeps settings, match memory, processed history, recent downloads, and stats in `chrome.storage.local`. |
+| `storage` | Keeps settings, match memory, processed history, track rankings, recent downloads, and stats in `chrome.storage.local`. |
 | `contextMenus` | Adds the copy and CSV actions to the right-click menu. |
 | `https://artlist.io/*`, `https://*.artlist.io/*` | Reads track details and applies the page tools. |
 | `https://www.youtube.com/*`, `https://youtube.com/*` | Requests YouTube search pages to score video candidates. |
@@ -114,7 +128,7 @@ The extension keeps its data in `chrome.storage.local`. It has no account system
 Node.js 20 or newer is required for the repository scripts. The extension itself has no runtime dependencies.
 
 ```bash
-npm test      # Unit tests for matching, toolbox helpers, and YouTube parsing
+npm test      # Unit tests for matching, toolbox helpers, rankings, and YouTube parsing
 npm run check # Syntax checks and manifest file validation
 npm run zip   # Builds dist/ArtlistToolbox-v<version>.zip
 ```

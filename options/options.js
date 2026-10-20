@@ -9,6 +9,7 @@ import {
   STATS_DAYS
 } from "../src/lib/defaults.js";
 import { buildCsv } from "../src/lib/csv.js";
+import { countRankings, ratingToStars, sortRankingEntries } from "../src/lib/rankings.js";
 
 const FLOW_HINTS = {
   auto: "Search YouTube and open y2mate automatically (memory and duration veto still apply).",
@@ -40,6 +41,11 @@ const els = {
   compact: document.getElementById("opt-compact"),
   processedDim: document.getElementById("opt-processed-dim"),
   shortcuts: document.getElementById("opt-shortcuts"),
+  rankingsEnabled: document.getElementById("opt-rankings-enabled"),
+  rankingsCount: document.getElementById("opt-rankings-count"),
+  rankingsList: document.getElementById("opt-rankings-list"),
+  rankingsClear: document.getElementById("opt-rankings-clear"),
+  openRankings: document.getElementById("opt-open-rankings"),
   popupExport: document.getElementById("opt-popup-export"),
   statsTotal: document.getElementById("opt-stats-total"),
   statsList: document.getElementById("opt-stats-list"),
@@ -64,6 +70,7 @@ async function init() {
   applyToUi();
   renderMemory();
   renderProcessed();
+  renderRankings();
   renderStats();
   renderDiagnostics();
   bindEvents();
@@ -83,6 +90,7 @@ function applyToUi() {
   els.compact.checked = Boolean(state.compactRows);
   els.processedDim.checked = state.processedDim !== false;
   els.shortcuts.checked = state.keyboardShortcuts !== false;
+  els.rankingsEnabled.checked = state.rankingsEnabled !== false;
   els.popupExport.checked = Boolean(state.popupExportButton);
 
   const percent = Math.round((Number(state.minScore) || DEFAULT_SETTINGS.minScore) * 100);
@@ -108,6 +116,7 @@ function bindEvents() {
   bindToggle("opt-compact", "compactRows");
   bindToggle("opt-processed-dim", "processedDim");
   bindToggle("opt-shortcuts", "keyboardShortcuts");
+  bindToggle("opt-rankings-enabled", "rankingsEnabled");
   bindToggle("opt-popup-export", "popupExportButton");
 
   els.minScore.addEventListener("input", () => {
@@ -172,6 +181,30 @@ function bindEvents() {
     await chrome.storage.local.set({ processed: {} });
     state.processed = {};
     renderProcessed();
+  });
+
+  els.rankingsClear.addEventListener("click", async () => {
+    if (!window.confirm("Clear every ranked track? This cannot be undone.")) {
+      return;
+    }
+    const response = await chrome.runtime.sendMessage({ type: "ARTLIST_CLEAR_RATINGS" });
+    if (!response?.ok) {
+      setConfigStatus("Could not clear rankings.", true);
+      return;
+    }
+    state.rankings = {};
+    renderRankings();
+  });
+
+  els.openRankings.addEventListener("click", () => {
+    chrome.tabs.create({ url: chrome.runtime.getURL("rankings/rankings.html") });
+  });
+
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area === "local" && changes.rankings) {
+      state.rankings = changes.rankings.newValue || {};
+      renderRankings();
+    }
   });
 
   els.statsReset.addEventListener("click", async () => {
@@ -273,6 +306,48 @@ function renderProcessed() {
   });
 }
 
+function renderRankings() {
+  const rankings = state.rankings || {};
+  const entries = sortRankingEntries(rankings, "rating");
+  const total = countRankings(rankings);
+
+  els.rankingsCount.textContent = total
+    ? `${total} ranked track${total === 1 ? "" : "s"}. Rate tracks on Artlist with 1–5.`
+    : "No ranked tracks yet. Hover a track on Artlist and press 1–5.";
+
+  els.rankingsList.textContent = "";
+  entries.slice(0, 20).forEach(([, entry]) => {
+    const date = entry.updatedAt ? new Date(entry.updatedAt).toLocaleDateString() : "";
+    els.rankingsList.append(
+      buildEntryRow({
+        title: formatEntryTitle(entry),
+        meta: [ratingToStars(entry.rating), date].filter(Boolean).join(" · "),
+        onDelete: async () => {
+          const response = await chrome.runtime.sendMessage({
+            type: "ARTLIST_SET_RATING",
+            payload: {
+              track: {
+                title: entry.title,
+                artist: entry.artist,
+                duration: entry.duration,
+                url: entry.url
+              },
+              rating: 0
+            }
+          });
+          if (!response?.ok) {
+            setConfigStatus("Could not remove that ranking.", true);
+            return;
+          }
+          const { rankings: next } = await chrome.storage.local.get({ rankings: {} });
+          state.rankings = next;
+          renderRankings();
+        }
+      })
+    );
+  });
+}
+
 function renderStats() {
   const stats = state.stats || {};
   const total = Number(stats.total) || 0;
@@ -358,11 +433,13 @@ async function getStateWithBytes() {
   const bytes = await chrome.storage.local.getBytesInUse(null);
   const memoryCount = Object.keys(items.matchMemory || {}).length;
   const processedCount = Object.keys(items.processed || {}).length;
+  const rankingsCount = countRankings(items.rankings || {});
   const diagnostics = {
     version: chrome.runtime.getManifest().version,
     bytesInUse: bytes,
     memoryCount,
     processedCount,
+    rankingsCount,
     recentCount: (items.recent || []).length,
     enabled: Boolean(items.enabled),
     flowMode: items.flowMode || "auto",
@@ -370,7 +447,7 @@ async function getStateWithBytes() {
     durationVeto: items.durationVeto !== false,
     durationTolerance: items.durationTolerance
   };
-  return `v${diagnostics.version} · ${bytes} bytes used · ${memoryCount} memory · ${processedCount} processed · ${diagnostics.recentCount} recent · flow: ${diagnostics.enabled ? "on" : "off"}/${diagnostics.flowMode} · threshold ${Math.round((Number(diagnostics.minScore) || 0.42) * 100)}% · veto ${diagnostics.durationVeto ? `${diagnostics.durationTolerance}s` : "off"}`;
+  return `v${diagnostics.version} · ${bytes} bytes used · ${memoryCount} memory · ${processedCount} processed · ${rankingsCount} ranked · ${diagnostics.recentCount} recent · flow: ${diagnostics.enabled ? "on" : "off"}/${diagnostics.flowMode} · threshold ${Math.round((Number(diagnostics.minScore) || 0.42) * 100)}% · veto ${diagnostics.durationVeto ? `${diagnostics.durationTolerance}s` : "off"}`;
 }
 
 async function copyDiagnostics() {
@@ -480,7 +557,7 @@ function sanitizeImportedConfig(raw) {
 }
 
 async function restoreDefaults() {
-  if (!window.confirm("Restore every setting on this page to its default? Memory, history and stats are NOT touched.")) {
+  if (!window.confirm("Restore every setting on this page to its default? Memory, history, stats and rankings are NOT touched.")) {
     return;
   }
 

@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Artlist Toolbox",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "Artlist library tools.",
   "permissions": ["tabs", "storage", "contextMenus"],
   "host_permissions": [

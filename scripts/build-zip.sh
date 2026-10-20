@@ -14,6 +14,7 @@ zip -r "${OUT}" \
   icons \
   popup \
   options \
+  rankings \
   src \
   README.md \
   LICENSE \

@@ -167,12 +167,32 @@
         <div class="row">
           <div class="row-label">
             <span>Keyboard shortcuts</span>
-            <small>d = download hovered · c = copy track info · / = focus search · q = queue mode.</small>
+            <small>d = download hovered · c = copy track info · 1–5 = rate hovered · 0 = clear rating · f = focus 4+ stars · / = focus search · q = queue mode.</small>
           </div>
           <label class="switch">
             <input type="checkbox" id="opt-shortcuts">
             <span class="slider"></span>
           </label>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Track rankings</h2>
+        <div class="row">
+          <div class="row-label">
+            <span>Enable track rankings</span>
+            <small>Rate tracks with 1–5 on Artlist, highlight favorites, and focus 4+ star rows. Works with the download flow off.</small>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="opt-rankings-enabled">
+            <span class="slider"></span>
+          </label>
+        </div>
+        <p class="hint" id="opt-rankings-count"></p>
+        <ul class="entry-list" id="opt-rankings-list"></ul>
+        <div class="button-row">
+          <button type="button" class="secondary" id="opt-open-rankings">Open rankings page</button>
+          <button type="button" class="secondary danger" id="opt-rankings-clear">Clear all rankings</button>
         </div>
       </section>
 

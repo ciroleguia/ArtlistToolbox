@@ -15,11 +15,12 @@ import {
 } from "./lib/youtube.js";
 import { DEFAULT_SETTINGS, MEMORY_LIMIT, PROCESSED_LIMIT, RECENT_LIMIT, STATS_DAYS } from "./lib/defaults.js";
 import { buildCsv, formatDurationLabel } from "./lib/csv.js";
+import { buildRankingEntry, countRankings, normalizeRating } from "./lib/rankings.js";
 
 const SEARCH_ATTEMPTS = 2;
 const RETRY_DELAY_MS = 500;
 const CANDIDATE_LIMIT = 5;
-const CSV_COLUMNS = ["Title", "Artist", "Duration", "Artlist URL", "YouTube URL"];
+const CSV_COLUMNS = ["Title", "Artist", "Duration", "Artlist URL", "YouTube URL", "Rating"];
 
 chrome.runtime.onInstalled.addListener(() => {
   chrome.contextMenus.removeAll(() => {
@@ -81,6 +82,30 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 
     case "ARTLIST_CHECK_PROCESSED":
       handleCheckProcessed(message.payload)
+        .then((result) => sendResponse({ ok: true, ...result }))
+        .catch(() => sendResponse({ ok: false }));
+      return true;
+
+    case "ARTLIST_CHECK_RATINGS":
+      handleCheckRatings(message.payload)
+        .then((result) => sendResponse({ ok: true, ...result }))
+        .catch(() => sendResponse({ ok: false }));
+      return true;
+
+    case "ARTLIST_SET_RATING":
+      handleSetRating(message.payload)
+        .then((result) => sendResponse({ ok: true, ...result }))
+        .catch((error) => {
+          console.error("[Artlist Toolbox]", error);
+          sendResponse({
+            ok: false,
+            error: error?.message || "No se pudo guardar la calificación."
+          });
+        });
+      return true;
+
+    case "ARTLIST_CLEAR_RATINGS":
+      handleClearRatings()
         .then((result) => sendResponse({ ok: true, ...result }))
         .catch(() => sendResponse({ ok: false }));
       return true;
@@ -251,11 +276,62 @@ async function handleCheckProcessed(payload = {}) {
   return { results };
 }
 
+async function handleCheckRatings(payload = {}) {
+  const tracks = Array.isArray(payload.tracks) ? payload.tracks.slice(0, 200) : [];
+  const { rankings } = await chrome.storage.local.get({ rankings: {} });
+
+  const results = tracks.map((track) => {
+    const fingerprint = buildFingerprint(track);
+    const rating = fingerprint ? normalizeRating(rankings[fingerprint]?.rating) : 0;
+    return { rating };
+  });
+
+  return { results };
+}
+
+async function handleSetRating(payload = {}) {
+  const track = normalizeTrack(payload.track || {});
+  const rating = normalizeRating(payload.rating);
+  const fingerprint = buildFingerprint(track);
+  if (!fingerprint) {
+    throw new Error("No pude detectar el nombre ni el artista de la pista.");
+  }
+
+  const { rankings } = await chrome.storage.local.get({ rankings: {} });
+
+  // Rating 0 clears the entry instead of storing a zero star.
+  if (!rating) {
+    if (rankings[fingerprint]) {
+      delete rankings[fingerprint];
+      await chrome.storage.local.set({ rankings });
+    }
+    return { rating: 0 };
+  }
+
+  const entry = buildRankingEntry({
+    track: { ...track, url: payload.track?.url || "" },
+    rating,
+    previous: rankings[fingerprint] || null,
+    now: Date.now()
+  });
+
+  await chrome.storage.local.set({ rankings: { ...rankings, [fingerprint]: entry } });
+  return { rating: entry.rating, entry };
+}
+
+async function handleClearRatings() {
+  const { rankings } = await chrome.storage.local.get({ rankings: {} });
+  const removed = countRankings(rankings);
+  await chrome.storage.local.set({ rankings: {} });
+  return { removed };
+}
+
 async function handleBuildCsv(payload = {}) {
   const tracks = Array.isArray(payload.tracks) ? payload.tracks.slice(0, 500) : [];
-  const { processed, matchMemory } = await chrome.storage.local.get({
+  const { processed, matchMemory, rankings } = await chrome.storage.local.get({
     processed: {},
-    matchMemory: {}
+    matchMemory: {},
+    rankings: {}
   });
 
   const rows = tracks.map((track) => {
@@ -264,12 +340,14 @@ async function handleBuildCsv(payload = {}) {
       ? processed[fingerprint]?.videoId || matchMemory[fingerprint]?.videoId
       : "";
     const videoId = isValidVideoId(stored) ? stored : "";
+    const rating = fingerprint ? normalizeRating(rankings[fingerprint]?.rating) : 0;
     return [
       cleanText(track.title),
       cleanText(track.artist),
       formatDurationLabel(track.duration),
       String(track.url || ""),
-      videoId ? buildYoutubeWatchUrl(videoId) : ""
+      videoId ? buildYoutubeWatchUrl(videoId) : "",
+      rating ? String(rating) : ""
     ];
   });
 

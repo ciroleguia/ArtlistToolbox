@@ -19,6 +19,16 @@ const MAX_ROOTS_PER_SCAN = 30;
 const PROCESSED_CHECK_LIMIT = 80;
 const PROCESSED_CHECK_DEBOUNCE_MS = 700;
 const QUEUE_DELAY_MS = 2200;
+const RATING_ATTR = "data-artlist-toolbox-rating";
+const RATING_STARS_ATTR = "data-artlist-toolbox-stars";
+const RANKINGS_ATTR = "data-artlist-toolbox-rankings";
+const FOCUS_RANKED_ATTR = "data-artlist-toolbox-focus-ranked";
+const RATING_HUD_ID = "artlist-toolbox-rating-hud";
+const RATINGS_CHECK_LIMIT = 120;
+const RATINGS_CHECK_DEBOUNCE_MS = 700;
+const RATING_HUD_DELAY_MS = 260;
+const RATING_HUD_HIDE_MS = 180;
+const FOCUS_MIN_RATING = 4;
 
 const OFFICIAL_DOWNLOAD_SELECTOR = [
   "button[aria-label='download' i]",
@@ -38,6 +48,8 @@ let hideHeroBanner = false;
 let compactRows = false;
 let processedDim = true;
 let keyboardShortcuts = true;
+let rankingsEnabled = true;
+let focusRanked = false;
 let pickerDismissListeners = null;
 let pickerContext = null;
 let lastHoveredRow = null;
@@ -49,6 +61,12 @@ let queueStatusText = "";
 const queuedRows = new Set();
 let processedCheckTimer = null;
 let processedCheckPending = false;
+let ratingsCheckTimer = null;
+let ratingsCheckPending = false;
+const pendingRatings = new WeakMap();
+let ratingHudRow = null;
+let ratingHudShowTimer = null;
+let ratingHudHideTimer = null;
 let toastTimer = null;
 
 boot();
@@ -69,7 +87,8 @@ function boot() {
       hideHeroBanner: false,
       compactRows: false,
       processedDim: true,
-      keyboardShortcuts: true
+      keyboardShortcuts: true,
+      rankingsEnabled: true
     },
     (items) => {
       extensionEnabled = Boolean(items.enabled);
@@ -78,6 +97,7 @@ function boot() {
       compactRows = Boolean(items.compactRows);
       processedDim = items.processedDim !== false;
       keyboardShortcuts = items.keyboardShortcuts !== false;
+      rankingsEnabled = items.rankingsEnabled !== false;
       applyPageTweaks();
       bootstrapScansRemaining = BOOTSTRAP_SCAN_COUNT;
       scheduleScan(document);
@@ -117,6 +137,21 @@ function boot() {
       keyboardShortcuts = changes.keyboardShortcuts.newValue !== false;
     }
 
+    if (changes.rankingsEnabled !== undefined) {
+      rankingsEnabled = changes.rankingsEnabled.newValue !== false;
+      applyPageTweaks();
+      if (rankingsEnabled) {
+        scheduleRankingsRefresh();
+      } else {
+        clearRatingMarks();
+        closeRatingHud();
+      }
+    }
+
+    if (changes.rankings !== undefined) {
+      scheduleRankingsRefresh();
+    }
+
     if (changes.enabled !== undefined) {
       extensionEnabled = changes.enabled.newValue;
       if (extensionEnabled) {
@@ -135,6 +170,8 @@ function boot() {
   document.addEventListener("mouseover", handleDocumentMouseOver, true);
   document.addEventListener("keydown", handleKeyDown, true);
   document.addEventListener("contextmenu", handleContextMenu, true);
+  window.addEventListener("scroll", closeRatingHud, true);
+  window.addEventListener("resize", closeRatingHud);
   chrome.runtime.onMessage.addListener(handleRuntimeMessage);
   observePageChanges();
   exposeDebugHelper();
@@ -195,6 +232,7 @@ function flushScanQueue() {
   roots.forEach((root) => tagTrackRows(root));
   roots.forEach((root) => enhanceDownloadButtons(root));
   scheduleProcessedRefresh();
+  scheduleRankingsRefresh();
 
   if (pendingRoots.size) {
     scheduleScan();
@@ -268,9 +306,19 @@ function formatResultTooltip(response) {
 }
 
 function handleDocumentMouseOver(event) {
+  // The rating HUD lives outside the rows; when the pointer reaches it, keep
+  // it open instead of treating the move as leaving the row.
+  if (event.target?.closest?.(`#${RATING_HUD_ID}`)) {
+    cancelRatingHudHide();
+    return;
+  }
+
   const hoveredRow = event.target?.closest?.(`[${ROW_ATTR}]`);
   if (hoveredRow) {
     lastHoveredRow = hoveredRow;
+    scheduleRatingHud(hoveredRow);
+  } else if (ratingHudRow) {
+    scheduleRatingHudHide();
   }
 
   if (!extensionEnabled) {
@@ -316,6 +364,11 @@ function applyPageTweaks() {
   document.documentElement.toggleAttribute(HIDE_HERO_ATTR, shouldHideHero);
   document.documentElement.toggleAttribute(COMPACT_ATTR, Boolean(compactRows));
   document.documentElement.toggleAttribute(DIM_PROCESSED_ATTR, Boolean(processedDim));
+  document.documentElement.toggleAttribute(RANKINGS_ATTR, Boolean(rankingsEnabled));
+  if (!rankingsEnabled) {
+    document.documentElement.removeAttribute(FOCUS_RANKED_ATTR);
+    focusRanked = false;
+  }
   try {
     window.localStorage.setItem(HIDE_HERO_CACHE_KEY, shouldHideHero ? "1" : "0");
   } catch (error) {
@@ -341,7 +394,7 @@ function handleDocumentClick(event) {
   // Queue selection mode turns row clicks into selection toggles (so tracks
   // do not start playing while building a batch).
   if (queueSelectMode && !queueRunning) {
-    const isToolboxUi = event.target?.closest?.(`#${QUEUE_BAR_ID}, #${TOAST_ID}`);
+    const isToolboxUi = event.target?.closest?.(`#${QUEUE_BAR_ID}, #${TOAST_ID}, #${RATING_HUD_ID}`);
     const row = isToolboxUi ? null : event.target?.closest?.(`[${ROW_ATTR}]`);
     if (row) {
       event.preventDefault();
@@ -797,7 +850,17 @@ function closePicker() {
 }
 
 function handleKeyDown(event) {
-  if (!keyboardShortcuts || event.defaultPrevented) {
+  if (event.defaultPrevented) {
+    return;
+  }
+
+  if (event.key === "Escape" && ratingHudRow) {
+    event.preventDefault();
+    closeRatingHud();
+    return;
+  }
+
+  if (!keyboardShortcuts) {
     return;
   }
   if (event.altKey || event.ctrlKey || event.metaKey) {
@@ -810,6 +873,18 @@ function handleKeyDown(event) {
   }
 
   const row = lastHoveredRow && document.contains(lastHoveredRow) ? lastHoveredRow : null;
+
+  if (rankingsEnabled && row && /^[0-5]$/.test(event.key) && !event.shiftKey && !event.repeat) {
+    event.preventDefault();
+    setRowRating(row, Number(event.key));
+    return;
+  }
+
+  if (rankingsEnabled && (event.key === "f" || event.key === "F") && !event.shiftKey && !event.repeat) {
+    event.preventDefault();
+    toggleFocusRanked();
+    return;
+  }
 
   if (event.key === "/") {
     const input = findSearchInput();
@@ -1011,6 +1086,262 @@ async function refreshProcessedMarks() {
       row.removeAttribute(PROCESSED_ATTR);
     }
   });
+}
+
+function scheduleRankingsRefresh() {
+  if (!rankingsEnabled) {
+    return;
+  }
+  window.clearTimeout(ratingsCheckTimer);
+  ratingsCheckTimer = window.setTimeout(refreshRankingMarks, RATINGS_CHECK_DEBOUNCE_MS);
+}
+
+async function refreshRankingMarks() {
+  if (!rankingsEnabled || ratingsCheckPending) {
+    return;
+  }
+
+  const rows = [...document.querySelectorAll(`[${ROW_ATTR}]`)].slice(0, RATINGS_CHECK_LIMIT);
+  if (!rows.length) {
+    return;
+  }
+
+  const tracks = rows.map((row) => {
+    const track = extractTrackInfo(row);
+    return { title: track.title, artist: track.artist };
+  });
+
+  ratingsCheckPending = true;
+  const response = await sendMessageAsync({ type: "ARTLIST_CHECK_RATINGS", payload: { tracks } });
+  ratingsCheckPending = false;
+
+  if (!rankingsEnabled || !response?.ok || !Array.isArray(response.results)) {
+    return;
+  }
+
+  rows.forEach((row, index) => {
+    // Skip rows with an in-flight optimistic rating so a slow refresh does not
+    // overwrite what the user just pressed.
+    if (pendingRatings.has(row)) {
+      return;
+    }
+    applyRowRating(row, normalizeRating(response.results[index]?.rating));
+  });
+}
+
+function extractRankingTrack(row) {
+  const track = extractTrackInfo(row);
+  const link = row.querySelector("a[href*='/royalty-free-music/song/'], a[href*='/song/']");
+  return {
+    title: track.title,
+    artist: track.artist,
+    duration: track.duration,
+    url: link?.href || ""
+  };
+}
+
+function setRowRating(row, rating) {
+  if (!row || !document.contains(row)) {
+    return;
+  }
+
+  const value = normalizeRating(rating);
+  const previous = normalizeRating(row.getAttribute(RATING_ATTR));
+  const track = extractRankingTrack(row);
+  if (!track.title && !track.artist) {
+    showToast("No pude detectar la info de la pista.", "warn");
+    return;
+  }
+
+  applyRowRating(row, value);
+  pendingRatings.set(row, value);
+  if (ratingHudRow === row) {
+    updateRatingHud(row);
+  }
+
+  const label = `${track.artist ? `${track.artist} — ` : ""}${track.title}`;
+  showToast(value ? `Calificación ${value}/5 · ${label}` : `Calificación quitada · ${label}`);
+
+  sendMessageAsync({ type: "ARTLIST_SET_RATING", payload: { track, rating: value } }).then((response) => {
+    pendingRatings.delete(row);
+    if (!response?.ok) {
+      applyRowRating(row, previous);
+      showToast(response?.error || "No se pudo guardar la calificación.", "warn");
+      return;
+    }
+    if (ratingHudRow === row) {
+      updateRatingHud(row);
+    }
+  });
+}
+
+function applyRowRating(row, rating) {
+  const value = normalizeRating(rating);
+  if (value) {
+    row.setAttribute(RATING_ATTR, String(value));
+    row.setAttribute(RATING_STARS_ATTR, ratingToStars(value));
+  } else {
+    row.removeAttribute(RATING_ATTR);
+    row.removeAttribute(RATING_STARS_ATTR);
+  }
+}
+
+function clearRatingMarks() {
+  document.querySelectorAll(`[${RATING_ATTR}]`).forEach((row) => {
+    row.removeAttribute(RATING_ATTR);
+    row.removeAttribute(RATING_STARS_ATTR);
+  });
+}
+
+function normalizeRating(value) {
+  const number = Math.round(Number(value));
+  return Number.isFinite(number) && number >= 1 && number <= 5 ? number : 0;
+}
+
+function ratingToStars(rating) {
+  const value = normalizeRating(rating);
+  return "★".repeat(value) + "☆".repeat(5 - value);
+}
+
+function toggleFocusRanked() {
+  if (!rankingsEnabled) {
+    return;
+  }
+
+  focusRanked = !focusRanked;
+  document.documentElement.toggleAttribute(FOCUS_RANKED_ATTR, focusRanked);
+  showToast(
+    focusRanked
+      ? `Foco en favoritos: ${FOCUS_MIN_RATING}+ estrellas · f para salir`
+      : "Foco en favoritos desactivado"
+  );
+}
+
+function scheduleRatingHud(row) {
+  if (!rankingsEnabled || window.top !== window) {
+    return;
+  }
+  window.clearTimeout(ratingHudHideTimer);
+  window.clearTimeout(ratingHudShowTimer);
+  ratingHudShowTimer = window.setTimeout(() => showRatingHud(row), RATING_HUD_DELAY_MS);
+}
+
+function showRatingHud(row) {
+  if (!rankingsEnabled || !row || !document.contains(row)) {
+    return;
+  }
+
+  const hud = ensureRatingHud();
+  ratingHudRow = row;
+  updateRatingHud(row);
+  positionRatingHud(hud, row);
+  hud.classList.add("visible");
+}
+
+function ensureRatingHud() {
+  let hud = document.getElementById(RATING_HUD_ID);
+  if (hud) {
+    return hud;
+  }
+
+  hud = document.createElement("div");
+  hud.id = RATING_HUD_ID;
+  hud.className = "artlist-toolbox-rating-hud";
+  hud.setAttribute("role", "group");
+  hud.setAttribute("aria-label", "Calificar pista");
+
+  const stars = document.createElement("span");
+  stars.className = "artlist-toolbox-rating-stars";
+
+  for (let value = 1; value <= 5; value += 1) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "artlist-toolbox-rating-star";
+    button.dataset.rating = String(value);
+    button.textContent = "★";
+    button.title = `${value} estrella${value === 1 ? "" : "s"}`;
+    button.setAttribute("aria-label", `${value} estrella${value === 1 ? "" : "s"}`);
+    button.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      if (ratingHudRow) {
+        setRowRating(ratingHudRow, value);
+      }
+    });
+    stars.append(button);
+  }
+
+  const clearButton = document.createElement("button");
+  clearButton.type = "button";
+  clearButton.className = "artlist-toolbox-rating-clear";
+  clearButton.textContent = "Quitar";
+  clearButton.addEventListener("click", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    if (ratingHudRow) {
+      setRowRating(ratingHudRow, 0);
+    }
+  });
+
+  hud.append(stars, clearButton);
+  hud.addEventListener("mouseenter", cancelRatingHudHide);
+  hud.addEventListener("mouseleave", scheduleRatingHudHide);
+  document.body.append(hud);
+  return hud;
+}
+
+function updateRatingHud(row) {
+  const hud = document.getElementById(RATING_HUD_ID);
+  if (!hud) {
+    return;
+  }
+
+  const rating = normalizeRating(row.getAttribute(RATING_ATTR));
+  hud.querySelectorAll(".artlist-toolbox-rating-star").forEach((button) => {
+    const active = Number(button.dataset.rating) <= rating;
+    button.classList.toggle("active", active);
+    button.setAttribute("aria-pressed", String(active));
+  });
+}
+
+function positionRatingHud(hud, row) {
+  const margin = 8;
+  const rect = row.getBoundingClientRect();
+  const width = hud.offsetWidth;
+  const height = hud.offsetHeight;
+
+  const left = Math.min(
+    Math.max(margin, rect.left + 12),
+    Math.max(margin, window.innerWidth - width - margin)
+  );
+  let top = rect.bottom + 4;
+  if (top + height > window.innerHeight - margin) {
+    top = Math.max(margin, rect.top - height - 4);
+  }
+
+  hud.style.left = `${left}px`;
+  hud.style.top = `${top}px`;
+}
+
+function scheduleRatingHudHide() {
+  window.clearTimeout(ratingHudShowTimer);
+  if (!ratingHudRow) {
+    return;
+  }
+  window.clearTimeout(ratingHudHideTimer);
+  ratingHudHideTimer = window.setTimeout(closeRatingHud, RATING_HUD_HIDE_MS);
+}
+
+function cancelRatingHudHide() {
+  window.clearTimeout(ratingHudShowTimer);
+  window.clearTimeout(ratingHudHideTimer);
+}
+
+function closeRatingHud() {
+  window.clearTimeout(ratingHudShowTimer);
+  window.clearTimeout(ratingHudHideTimer);
+  ratingHudRow = null;
+  document.getElementById(RATING_HUD_ID)?.remove();
 }
 
 function toggleQueueSelectMode() {
@@ -1318,12 +1649,15 @@ function exposeDebugHelper() {
         compactRows,
         processedDim,
         keyboardShortcuts,
+        rankingsEnabled,
+        focusRanked,
         queueSelectMode,
         queueRunning,
         queuedCount: queuedRows.size
       },
       rows: document.querySelectorAll(`[${ROW_ATTR}]`).length,
       processedRows: document.querySelectorAll(`[${PROCESSED_ATTR}]`).length,
+      ratedRows: document.querySelectorAll(`[${RATING_ATTR}]`).length,
       buttons: buttons.map((button) => {
         const row = findTrackContainer(button);
         return {

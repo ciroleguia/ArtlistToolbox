@@ -207,6 +207,125 @@ html[data-artlist-toolbox-dim] [data-artlist-toolbox-row][data-artlist-toolbox-p
   opacity: 0.6;
 }
 
+/*
+ * Track rankings: a colored left accent plus a compact star badge on rated
+ * rows. The row gets `position: relative` only while rated so the ::after
+ * badge anchors to it. The badge is a pseudo-element, so React never sees an
+ * extra child node in its list.
+ */
+html[data-artlist-toolbox-rankings] [data-artlist-toolbox-row][data-artlist-toolbox-rating] {
+  box-shadow: inset 3px 0 0 var(--artlist-rating-color, #f9db54) !important;
+  position: relative !important;
+}
+
+html[data-artlist-toolbox-rankings] [data-artlist-toolbox-row][data-artlist-toolbox-rating]::after {
+  background: rgba(20, 22, 27, 0.92);
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  color: var(--artlist-rating-color, #f9db54);
+  content: attr(data-artlist-toolbox-stars);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, sans-serif;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  padding: 2px 6px;
+  pointer-events: none;
+  position: absolute;
+  left: 4px;
+  top: 2px;
+  white-space: nowrap;
+  z-index: 5;
+}
+
+html[data-artlist-toolbox-rankings] [data-artlist-toolbox-row][data-artlist-toolbox-rating="5"] {
+  --artlist-rating-color: #f9db54;
+}
+
+html[data-artlist-toolbox-rankings] [data-artlist-toolbox-row][data-artlist-toolbox-rating="4"] {
+  --artlist-rating-color: #fb923c;
+}
+
+html[data-artlist-toolbox-rankings] [data-artlist-toolbox-row][data-artlist-toolbox-rating="3"] {
+  --artlist-rating-color: #60a5fa;
+}
+
+html[data-artlist-toolbox-rankings] [data-artlist-toolbox-row][data-artlist-toolbox-rating="2"] {
+  --artlist-rating-color: #94a3b8;
+}
+
+html[data-artlist-toolbox-rankings] [data-artlist-toolbox-row][data-artlist-toolbox-rating="1"] {
+  --artlist-rating-color: #64748b;
+}
+
+/* 4+ star tracks stay readable even when they are already in processed history. */
+html[data-artlist-toolbox-dim] [data-artlist-toolbox-row][data-artlist-toolbox-processed][data-artlist-toolbox-rating="4"],
+html[data-artlist-toolbox-dim] [data-artlist-toolbox-row][data-artlist-toolbox-processed][data-artlist-toolbox-rating="5"] {
+  opacity: 1;
+}
+
+/* "f" focus favorites: dim everything below the focus threshold. */
+html[data-artlist-toolbox-rankings][data-artlist-toolbox-focus-ranked] [data-artlist-toolbox-row]:not([data-artlist-toolbox-rating="4"]):not([data-artlist-toolbox-rating="5"]) {
+  opacity: 0.25;
+}
+
+/* Floating rating bar shown when a track row is hovered. */
+#artlist-toolbox-rating-hud {
+  align-items: center;
+  background: #14161b;
+  border: 1px solid #2a2f3a;
+  border-radius: 999px;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.5);
+  display: flex;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, sans-serif;
+  gap: 2px;
+  opacity: 0;
+  padding: 4px 8px 4px 6px;
+  pointer-events: none;
+  position: fixed;
+  transform: translateY(3px);
+  transition: opacity 0.14s ease, transform 0.14s ease;
+  z-index: 2147483647;
+}
+
+#artlist-toolbox-rating-hud.visible {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+#artlist-toolbox-rating-hud .artlist-toolbox-rating-star {
+  background: transparent;
+  border: 0;
+  color: #4b5568;
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  padding: 2px 3px;
+}
+
+#artlist-toolbox-rating-hud .artlist-toolbox-rating-star:hover,
+#artlist-toolbox-rating-hud .artlist-toolbox-rating-star.active {
+  color: #f9db54;
+}
+
+#artlist-toolbox-rating-hud .artlist-toolbox-rating-clear {
+  background: transparent;
+  border: 1px solid #3a4150;
+  border-radius: 999px;
+  color: #cbd5e1;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 600;
+  margin-left: 4px;
+  padding: 3px 8px;
+}
+
+#artlist-toolbox-rating-hud .artlist-toolbox-rating-clear:hover {
+  border-color: #f9db54;
+  color: #f9db54;
+}
+
 /* Toast notifications (copy, queue summaries, warnings). */
 #artlist-toolbox-toast {
   background: #14161b;

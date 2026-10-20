@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Artlist Toolbox — Rankings</title>
+    <link rel="stylesheet" href="../options/options.css">
+    <link rel="stylesheet" href="rankings.css">
+  </head>
+  <body>
+    <main class="options rankings-page">
+      <header class="header">
+        <img src="../icons/icon128.png" alt="" class="logo">
+        <div class="header-text">
+          <h1>Track rankings</h1>
+          <p>Your 5-star picks from the Artlist library. Ratings stay in this browser.</p>
+        </div>
+        <span class="version" id="version"></span>
+      </header>
+
+      <section class="card">
+        <div class="rankings-toolbar">
+          <input type="search" id="rankings-search" placeholder="Search title or artist…" aria-label="Search rankings">
+          <label class="rankings-control">
+            <span>Sort</span>
+            <select id="rankings-sort">
+              <option value="rating">Rating</option>
+              <option value="recent">Recently rated</option>
+              <option value="title">Title</option>
+            </select>
+          </label>
+          <label class="rankings-control">
+            <span>Filter</span>
+            <select id="rankings-filter">
+              <option value="all">All ratings</option>
+              <option value="5">5 stars</option>
+              <option value="4">4 stars</option>
+              <option value="3">3 stars</option>
+              <option value="2">2 stars</option>
+              <option value="1">1 star</option>
+            </select>
+          </label>
+        </div>
+
+        <p class="hint" id="rankings-summary"></p>
+        <ul class="rankings-list" id="rankings-list"></ul>
+        <p class="hint rankings-empty" id="rankings-empty" hidden></p>
+
+        <div class="button-row">
+          <button type="button" class="secondary" id="rankings-export">Export CSV</button>
+          <button type="button" class="secondary danger" id="rankings-clear">Clear all</button>
+          <a class="secondary link-out" href="../options/options.html">Settings</a>
+        </div>
+        <p class="hint" id="rankings-status" hidden></p>
+      </section>
+
+      <footer class="footer">
+        developed by <a href="https://github.com/ciroleguia" target="_blank" rel="noopener">Ciro</a>
+        <span class="separator">·</span>
+        <span id="footer-version"></span>
+      </footer>
+    </main>
+    <script type="module" src="rankings.js"></script>
+  </body>
+</html>

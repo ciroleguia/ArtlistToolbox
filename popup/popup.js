@@ -19,6 +19,8 @@ const POPUP_KEYS = [
   "openInBackground",
   "hideHeroBanner",
   "compactRows",
+  "rankingsEnabled",
+  "rankings",
   "popupExportButton",
   "minScore",
   "recent",
@@ -29,6 +31,8 @@ const toggleCheckbox = document.getElementById("toggle-extension");
 const backgroundCheckbox = document.getElementById("toggle-background");
 const hideHeroCheckbox = document.getElementById("toggle-hide-hero");
 const compactCheckbox = document.getElementById("toggle-compact");
+const rankingsCheckbox = document.getElementById("toggle-rankings");
+const rankingsCount = document.getElementById("rankings-count");
 const minScoreInput = document.getElementById("min-score");
 const thresholdValue = document.getElementById("threshold-value");
 const flowModes = document.getElementById("flow-modes");
@@ -49,6 +53,8 @@ chrome.storage.local.get(popupDefaults, (items) => {
   backgroundCheckbox.checked = Boolean(items.openInBackground);
   hideHeroCheckbox.checked = Boolean(items.hideHeroBanner);
   compactCheckbox.checked = Boolean(items.compactRows);
+  rankingsCheckbox.checked = items.rankingsEnabled !== false;
+  renderRankingsCount(items.rankings);
   exportButton.hidden = !items.popupExportButton;
   minScoreInput.value = Math.round(items.minScore * 100);
   thresholdValue.textContent = `${Math.round(items.minScore * 100)}%`;
@@ -77,6 +83,10 @@ hideHeroCheckbox.addEventListener("change", () => {
 
 compactCheckbox.addEventListener("change", () => {
   chrome.storage.local.set({ compactRows: compactCheckbox.checked });
+});
+
+rankingsCheckbox.addEventListener("change", () => {
+  chrome.storage.local.set({ rankingsEnabled: rankingsCheckbox.checked });
 });
 
 minScoreInput.addEventListener("input", () => {
@@ -128,6 +138,11 @@ document.getElementById("open-options").addEventListener("click", () => {
   window.close();
 });
 
+document.getElementById("open-rankings").addEventListener("click", () => {
+  chrome.tabs.create({ url: chrome.runtime.getURL("rankings/rankings.html") });
+  window.close();
+});
+
 document.getElementById("clear-recent").addEventListener("click", () => {
   chrome.storage.local.set({ recent: [] }, () => renderRecent([]));
 });
@@ -135,6 +150,12 @@ document.getElementById("clear-recent").addEventListener("click", () => {
 chrome.storage.onChanged.addListener((changes) => {
   if (changes.popupExportButton) {
     exportButton.hidden = !changes.popupExportButton.newValue;
+  }
+  if (changes.rankingsEnabled) {
+    rankingsCheckbox.checked = changes.rankingsEnabled.newValue !== false;
+  }
+  if (changes.rankings) {
+    renderRankingsCount(changes.rankings.newValue);
   }
   if (changes.recent) {
     renderRecent(changes.recent.newValue || []);
@@ -202,6 +223,12 @@ function renderStats(stats = {}) {
     .reduce((sum, [, count]) => sum + (Number(count) || 0), 0);
 
   statsLine.textContent = `${total} download${total === 1 ? "" : "s"} total · ${week} in the last 7 days`;
+}
+
+function renderRankingsCount(rankings = {}) {
+  const count = rankings && typeof rankings === "object" ? Object.keys(rankings).length : 0;
+  rankingsCount.hidden = count === 0;
+  rankingsCount.textContent = count > 99 ? "99+" : String(count);
 }
 
 function localDateKey(date) {

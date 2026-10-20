@@ -14,6 +14,12 @@
           <h1>Artlist Toolbox</h1>
           <p>Library tools for Artlist.</p>
         </div>
+        <button id="open-rankings" class="icon-button" type="button" aria-label="Rankings" title="Rankings">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path>
+          </svg>
+          <span id="rankings-count" class="icon-badge" hidden></span>
+        </button>
         <button id="open-options" class="icon-button" type="button" aria-label="Settings" title="Settings">
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
             <circle cx="12" cy="12" r="3"></circle>
@@ -75,6 +81,17 @@
         </div>
         <label class="switch">
           <input type="checkbox" id="toggle-compact">
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <div class="settings-row">
+        <div class="settings-label">
+          <span>Track rankings</span>
+          <small>Rate tracks with 1–5; press f to focus favorites.</small>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="toggle-rankings">
           <span class="slider"></span>
         </label>
       </div>

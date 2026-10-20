@@ -1,0 +1,165 @@
+.rankings-toolbar {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  margin-bottom: 8px;
+}
+
+.rankings-toolbar input[type="search"],
+.rankings-control select {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  color: #f8fafc;
+  font: 500 13px/1 system-ui, sans-serif;
+  padding: 10px 12px;
+}
+
+.rankings-toolbar input[type="search"]:focus,
+.rankings-control select:focus {
+  border-color: #f9db54;
+  outline: none;
+}
+
+.rankings-control {
+  align-items: center;
+  display: flex;
+  gap: 6px;
+}
+
+.rankings-control > span {
+  color: #8b95a8;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.rankings-list {
+  list-style: none;
+  margin: 10px 0 12px;
+  padding: 0;
+}
+
+.ranking-item {
+  align-items: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  display: flex;
+  gap: 12px;
+  padding: 10px 2px;
+}
+
+.ranking-stars {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 1px;
+}
+
+.ranking-star {
+  background: transparent;
+  border: 0;
+  color: #4b5568;
+  cursor: pointer;
+  font-size: 15px;
+  line-height: 1;
+  padding: 2px;
+}
+
+.ranking-star:hover,
+.ranking-star.active {
+  color: #f9db54;
+}
+
+.ranking-main {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.ranking-title {
+  color: #e2e8f0;
+  font-size: 13px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ranking-meta {
+  color: #8b95a8;
+  font-size: 11px;
+}
+
+.ranking-actions {
+  align-items: center;
+  display: flex;
+  flex: 0 0 auto;
+  gap: 10px;
+}
+
+.ranking-link,
+.ranking-remove {
+  background: none;
+  border: 0;
+  color: #8b95a8;
+  cursor: pointer;
+  font: 600 11px/1 system-ui, sans-serif;
+  padding: 2px;
+  text-decoration: none;
+}
+
+.ranking-link:hover {
+  color: #f9db54;
+}
+
+.ranking-remove:hover {
+  color: #f87171;
+}
+
+.rankings-empty {
+  margin: 18px 0;
+  text-align: center;
+}
+
+#rankings-status.error {
+  color: #f87171;
+}
+
+@media (max-width: 700px) {
+  .rankings-toolbar {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-color-scheme: light) {
+  .rankings-toolbar input[type="search"],
+  .rankings-control select {
+    background: #ffffff;
+    border-color: #cdd3de;
+    color: #14161b;
+  }
+
+  .ranking-item {
+    border-bottom-color: #eceef3;
+  }
+
+  .ranking-title {
+    color: #1f2430;
+  }
+
+  .ranking-star {
+    color: #cbd2dd;
+  }
+
+  .ranking-star.active {
+    color: #c99700;
+  }
+
+  .ranking-link,
+  .ranking-remove,
+  .ranking-meta {
+    color: #5b6474;
+  }
+}
