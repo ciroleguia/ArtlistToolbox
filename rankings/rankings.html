@@ -12,32 +12,47 @@
       <header class="header">
         <img src="../icons/icon128.png" alt="" class="logo">
         <div class="header-text">
-          <h1>Track rankings</h1>
-          <p>Your 5-star picks from the Artlist library. Ratings stay in this browser.</p>
+          <h1 data-i18n="rankings.title">Track rankings</h1>
+          <p data-i18n="rankings.subtitle">Your 5-star picks, tags and notes from Artlist. Stored locally.</p>
         </div>
+        <button type="button" class="secondary rankings-popout" id="rankings-open-tab" data-i18n-title="rankings.openFullTab" data-i18n-aria-label="rankings.openFullTab" hidden>↗</button>
         <span class="version" id="version"></span>
       </header>
 
       <section class="card">
         <div class="rankings-toolbar">
-          <input type="search" id="rankings-search" placeholder="Search title or artist…" aria-label="Search rankings">
+          <input type="search" id="rankings-search" data-i18n-placeholder="rankings.searchPlaceholder" placeholder="Search title, artist, tag or note…" data-i18n-aria-label="rankings.searchPlaceholder" aria-label="Search rankings">
           <label class="rankings-control">
-            <span>Sort</span>
+            <span data-i18n="rankings.sortLabel">Sort</span>
             <select id="rankings-sort">
-              <option value="rating">Rating</option>
-              <option value="recent">Recently rated</option>
-              <option value="title">Title</option>
+              <option value="rating" data-i18n="rankings.sortRating">Rating</option>
+              <option value="recent" data-i18n="rankings.sortRecent">Recently rated</option>
+              <option value="title" data-i18n="rankings.sortTitle">Title</option>
             </select>
           </label>
           <label class="rankings-control">
-            <span>Filter</span>
+            <span data-i18n="rankings.filterLabel">Stars</span>
             <select id="rankings-filter">
-              <option value="all">All ratings</option>
-              <option value="5">5 stars</option>
-              <option value="4">4 stars</option>
-              <option value="3">3 stars</option>
-              <option value="2">2 stars</option>
-              <option value="1">1 star</option>
+              <option value="all" data-i18n="rankings.filterAll">All ratings</option>
+              <option value="5" data-i18n="rankings.filter5">5 stars</option>
+              <option value="4" data-i18n="rankings.filter4">4 stars</option>
+              <option value="3" data-i18n="rankings.filter3">3 stars</option>
+              <option value="2" data-i18n="rankings.filter2">2 stars</option>
+              <option value="1" data-i18n="rankings.filter1">1 star</option>
+            </select>
+          </label>
+          <label class="rankings-control">
+            <span data-i18n="rankings.tagFilterLabel">Tag</span>
+            <select id="rankings-tag-filter">
+              <option value="" data-i18n="rankings.tagFilterAll">All tags</option>
+            </select>
+          </label>
+          <label class="rankings-control">
+            <span data-i18n="rankings.kindFilterLabel">Type</span>
+            <select id="rankings-kind-filter">
+              <option value="all" data-i18n="rankings.kindAll">All types</option>
+              <option value="music" data-i18n="rankings.kindMusic">Music</option>
+              <option value="sfx" data-i18n="rankings.kindSfx">SFX</option>
             </select>
           </label>
         </div>
@@ -47,15 +62,20 @@
         <p class="hint rankings-empty" id="rankings-empty" hidden></p>
 
         <div class="button-row">
-          <button type="button" class="secondary" id="rankings-export">Export CSV</button>
-          <button type="button" class="secondary danger" id="rankings-clear">Clear all</button>
-          <a class="secondary link-out" href="../options/options.html">Settings</a>
+          <button type="button" class="secondary" id="rankings-export" data-i18n="rankings.exportCsv">Export CSV</button>
+          <button type="button" class="secondary" id="rankings-export-json" data-i18n="rankings.exportJson">Export JSON</button>
+          <label class="secondary file-label">
+            <span data-i18n="rankings.importJson">Import JSON</span>
+            <input type="file" id="rankings-import-json" accept="application/json,.json" hidden>
+          </label>
+          <button type="button" class="secondary danger" id="rankings-clear" data-i18n="rankings.clearAll">Clear all</button>
+          <a class="secondary link-out" href="../options/options.html" target="_blank" rel="noopener" data-i18n="rankings.settingsLink">Settings</a>
         </div>
         <p class="hint" id="rankings-status" hidden></p>
       </section>
 
       <footer class="footer">
-        developed by <a href="https://github.com/ciroleguia" target="_blank" rel="noopener">Ciro</a>
+        <span data-i18n="popup.developedBy">developed by</span> <a href="https://github.com/ciroleguia" target="_blank" rel="noopener">Ciro</a>
         <span class="separator">·</span>
         <span id="footer-version"></span>
       </footer>

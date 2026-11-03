@@ -2,12 +2,15 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import {
+  DEFAULT_CONVERTER_TEMPLATE,
+  buildConverterUrl,
   buildY2mateUrl,
   buildYoutubeSearchUrl,
   extractVideoCandidates,
   extractVideoCandidatesFromHtml,
   extractYtInitialData,
   findJsonObjectEnd,
+  isValidConverterTemplate,
   isValidVideoId,
   parseDuration
 } from "../src/lib/youtube.js";
@@ -74,8 +77,27 @@ test("isValidVideoId accepts only 11-char YouTube ids", () => {
   assert.equal(isValidVideoId(undefined), false);
 });
 
-test("URL builders produce the expected targets", () => {
+test("URL builders and custom converter templates produce expected targets", () => {
   assert.equal(buildY2mateUrl("dQw4w9WgXcQ"), "https://y2mate.gs/#dQw4w9WgXcQ/mp3");
+  assert.equal(
+    buildConverterUrl("dQw4w9WgXcQ", DEFAULT_CONVERTER_TEMPLATE),
+    "https://y2mate.gs/#dQw4w9WgXcQ/mp3"
+  );
+  assert.equal(
+    buildConverterUrl("dQw4w9WgXcQ", "https://cobalt.example/?u={youtubeUrl}"),
+    "https://cobalt.example/?u=https%3A%2F%2Fwww.youtube.com%2Fwatch%3Fv%3DdQw4w9WgXcQ"
+  );
+  assert.equal(
+    buildConverterUrl("dQw4w9WgXcQ", "https://converter.example/dl?url={rawYoutubeUrl}"),
+    "https://converter.example/dl?url=https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+  );
+  // Unsafe schemes or missing placeholders fall back to the default template.
+  assert.equal(isValidConverterTemplate("javascript:alert({videoId})"), false);
+  assert.equal(isValidConverterTemplate("https://example.com/no-token"), false);
+  assert.equal(
+    buildConverterUrl("dQw4w9WgXcQ", "javascript:alert({videoId})"),
+    "https://y2mate.gs/#dQw4w9WgXcQ/mp3"
+  );
   assert.equal(
     buildYoutubeSearchUrl("AC/DC Thunderstruck"),
     "https://www.youtube.com/results?search_query=AC%2FDC%20Thunderstruck&hl=en&gl=US"
@@ -128,6 +150,42 @@ test("extractVideoCandidates reads titles, channels and durations", () => {
   assert.equal(candidates[1].title, "Plain Title");
   assert.equal(candidates[1].artist, "Some Channel");
   assert.equal(candidates[1].duration, 3723);
+});
+
+test("extractVideoCandidates detects Topic uploads and Official Artist badges", () => {
+  const data = {
+    items: [
+      {
+        videoRenderer: {
+          videoId: "11111111111",
+          title: { runs: [{ text: "Midnight Drive" }] },
+          ownerText: { runs: [{ text: "The Midnight - Topic" }] },
+          lengthText: { simpleText: "3:45" }
+        }
+      },
+      {
+        videoRenderer: {
+          videoId: "22222222222",
+          title: { runs: [{ text: "Sunset" }] },
+          ownerText: { runs: [{ text: "Release" }] },
+          detailedMetadataSnippets: [
+            { snippetText: { runs: [{ text: "Provided to YouTube by DistroKid" }] } }
+          ],
+          ownerBadges: [
+            { metadataBadgeRenderer: { style: "BADGE_STYLE_TYPE_VERIFIED_ARTIST" } }
+          ],
+          lengthText: { simpleText: "4:00" }
+        }
+      }
+    ]
+  };
+
+  const candidates = extractVideoCandidates(htmlWithInitialData(data));
+  assert.equal(candidates.length, 2);
+  assert.equal(candidates[0].isTopic, true);
+  assert.equal(candidates[0].isOfficialArtist, undefined);
+  assert.equal(candidates[1].isTopic, true);
+  assert.equal(candidates[1].isOfficialArtist, true);
 });
 
 test("extractVideoCandidates falls back to raw videoId scraping", () => {

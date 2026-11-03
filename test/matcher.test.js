@@ -3,14 +3,18 @@ import assert from "node:assert/strict";
 
 import {
   DEFAULT_MIN_SCORE,
+  OFFICIAL_ARTIST_BONUS,
+  TOPIC_CHANNEL_BONUS,
   buildSearchQuery,
   cleanText,
+  isTopicCandidate,
   normalizeForMatch,
   normalizeTrack,
   pickBestMatch,
   scoreCandidate,
   scoreCandidates,
-  similarity
+  similarity,
+  stripTopicSuffix
 } from "../src/lib/matcher.js";
 
 const TRACK = { title: "Midnight Drive", artist: "The Midnight", duration: 225 };
@@ -18,6 +22,18 @@ const TRACK = { title: "Midnight Drive", artist: "The Midnight", duration: 225 }
 test("cleanText collapses whitespace and normalizes typographic quotes", () => {
   assert.equal(cleanText("  Hello   “world”  "), "Hello \"world\"");
   assert.equal(cleanText(null), "");
+});
+
+test("stripTopicSuffix removes YouTube auto-generated Topic channel suffix", () => {
+  assert.equal(stripTopicSuffix("The Midnight - Topic"), "The Midnight");
+  assert.equal(stripTopicSuffix("NF - Topic"), "NF");
+  assert.equal(stripTopicSuffix("Topic Studios"), "Topic Studios");
+});
+
+test("isTopicCandidate detects Topic channel suffix or explicit flag", () => {
+  assert.equal(isTopicCandidate({ artist: "The Midnight - Topic" }), true);
+  assert.equal(isTopicCandidate({ artist: "Various Artists", isTopic: true }), true);
+  assert.equal(isTopicCandidate({ artist: "Random Reuploader" }), false);
 });
 
 test("normalizeTrack trims text and clamps the duration", () => {
@@ -54,6 +70,48 @@ test("a perfect candidate with matching duration scores 1", () => {
     duration: 225
   });
   assert.equal(score, 1);
+});
+
+test("Topic channel upload outranks an ordinary re-upload and matches 2-char artists", () => {
+  assert.ok(TOPIC_CHANNEL_BONUS > 0);
+  assert.ok(OFFICIAL_ARTIST_BONUS > 0);
+
+  const shortArtistTrack = { title: "The Search", artist: "NF", duration: 248 };
+  const reupload = scoreCandidate(
+    shortArtistTrack,
+    { title: "The Search - Extended Cut", artist: "Fan Edits", duration: 248 },
+    0,
+    { preferredTerms: [] }
+  );
+  const topicUpload = scoreCandidate(
+    shortArtistTrack,
+    { title: "The Search", artist: "NF - Topic", duration: 248, isTopic: true },
+    0,
+    { preferredTerms: [] }
+  );
+  assert.equal(topicUpload, 1);
+  assert.ok(topicUpload > reupload);
+
+  const partial = scoreCandidate(
+    TRACK,
+    { title: "Midnight Drive", artist: "Various Artists", duration: 225 },
+    0,
+    { preferredTerms: [] }
+  );
+  const partialTopic = scoreCandidate(
+    TRACK,
+    { title: "Midnight Drive", artist: "Various Artists - Topic", duration: 225, isTopic: true },
+    0,
+    { preferredTerms: [] }
+  );
+  const partialVerified = scoreCandidate(
+    TRACK,
+    { title: "Midnight Drive", artist: "Various Artists", duration: 225, isOfficialArtist: true },
+    0,
+    { preferredTerms: [] }
+  );
+  assert.ok(partialTopic > partial);
+  assert.ok(partialVerified > partial);
 });
 
 test("duration mismatch only costs the duration weight", () => {

@@ -64,7 +64,7 @@ p {
 }
 
 .version {
-  color: #8b95a8;
+  color: #b4bfd0;
   font-size: 12px;
   font-weight: 600;
 }
@@ -110,16 +110,20 @@ p {
 }
 
 .row-label small {
-  color: #8b95a8;
+  color: #b4bfd0;
   font-size: 12px;
   line-height: 1.4;
 }
 
 .hint {
-  color: #8b95a8;
+  color: #b4bfd0;
   font-size: 12px;
   line-height: 1.45;
   margin: 6px 0 0;
+}
+
+.hint.error {
+  color: #f87171;
 }
 
 .mode-group {
@@ -179,18 +183,50 @@ input[type="range"] {
   gap: 8px;
 }
 
-.number-field input {
+.number-field input,
+.select-field,
+.text-input {
   background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 8px;
   color: #f8fafc;
-  font: 600 13px/1 system-ui, sans-serif;
+  font: 600 13px/1.2 system-ui, sans-serif;
   padding: 8px 10px;
+}
+
+.number-field input::placeholder,
+.text-input::placeholder,
+textarea::placeholder {
+  color: #94a3b8;
+  opacity: 1;
+}
+
+.number-field input {
   width: 90px;
 }
 
+.select-field {
+  cursor: pointer;
+  flex: 0 0 auto;
+  min-width: 155px;
+}
+
+.text-field-row {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.text-input {
+  flex: 1 1 280px;
+  font: 500 12px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
+  min-width: 0;
+}
+
 .number-field span {
-  color: #8b95a8;
+  color: #b4bfd0;
   font-size: 12px;
 }
 
@@ -275,7 +311,9 @@ textarea {
 }
 
 textarea:focus,
-.number-field input:focus {
+.number-field input:focus,
+.select-field:focus,
+.text-input:focus {
   border-color: #f9db54;
   outline: none;
 }
@@ -347,7 +385,7 @@ button.secondary.danger:hover {
 }
 
 .entry-list .entry-meta {
-  color: #8b95a8;
+  color: #b4bfd0;
   font-size: 11px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -366,7 +404,7 @@ button.secondary.danger:hover {
 .entry-list button.entry-delete {
   background: none;
   border: 0;
-  color: #8b95a8;
+  color: #b4bfd0;
   cursor: pointer;
   flex: 0 0 auto;
   font-size: 11px;
@@ -404,7 +442,7 @@ kbd {
 }
 
 .footer {
-  color: #6b7383;
+  color: #9aa4b8;
   font-size: 12px;
   margin-top: 18px;
   text-align: center;
@@ -434,11 +472,15 @@ kbd {
   .hint,
   .row-label small,
   .entry-list .entry-meta {
-    color: #5b6474;
+    color: #475569;
+  }
+
+  .hint.error {
+    color: #dc2626;
   }
 
   .version {
-    color: #6b7383;
+    color: #475569;
   }
 
   .card {
@@ -461,7 +503,7 @@ kbd {
   }
 
   .mode-option {
-    color: #5b6474;
+    color: #475569;
   }
 
   .mode-option:hover {
@@ -469,10 +511,18 @@ kbd {
   }
 
   textarea,
-  .number-field input {
+  .number-field input,
+  .select-field,
+  .text-input {
     background: #ffffff;
     border-color: #cdd3de;
     color: #14161b;
+  }
+
+  .number-field input::placeholder,
+  .text-input::placeholder,
+  textarea::placeholder {
+    color: #64748b;
   }
 
   .slider {
@@ -494,6 +544,10 @@ kbd {
     color: #1f2430;
   }
 
+  .plain-list {
+    color: #334155;
+  }
+
   kbd {
     background: rgba(15, 17, 21, 0.06);
     border-color: rgba(15, 17, 21, 0.14);
@@ -501,6 +555,6 @@ kbd {
   }
 
   .footer {
-    color: #6b7383;
+    color: #475569;
   }
 }

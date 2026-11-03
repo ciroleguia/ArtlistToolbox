@@ -8,7 +8,13 @@ import {
   scoreCandidate,
   scoreCandidates
 } from "../src/lib/matcher.js";
-import { buildCsv, escapeCsvValue, formatDurationLabel } from "../src/lib/csv.js";
+import {
+  buildCsv,
+  escapeCsvValue,
+  formatDurationLabel,
+  sanitizeCsvCell
+} from "../src/lib/csv.js";
+import { createSerialQueue } from "../src/lib/storage-queue.js";
 
 const TRACK = { title: "Midnight Drive", artist: "The Midnight", duration: 225 };
 
@@ -90,6 +96,17 @@ test("buildFingerprint is stable and ignores case and accents", () => {
   assert.equal(buildFingerprint({}), "");
 });
 
+test("sanitizeCsvCell and escapeCsvValue guard against spreadsheet formula injection", () => {
+  assert.equal(sanitizeCsvCell("=CMD|' /C calc'!A0"), "'=CMD|' /C calc'!A0");
+  assert.equal(sanitizeCsvCell("@SUM(1+1)"), "'@SUM(1+1)");
+  assert.equal(sanitizeCsvCell("+1+1"), "'+1+1");
+  assert.equal(sanitizeCsvCell("-A1+B1"), "'-A1+B1");
+  // Signed plain numbers and normal text stay untouched.
+  assert.equal(sanitizeCsvCell("-12.5"), "-12.5");
+  assert.equal(sanitizeCsvCell("+42"), "+42");
+  assert.equal(escapeCsvValue("=HYPERLINK(\"https://evil.example\",\"click\")"), "\"'=HYPERLINK(\"\"https://evil.example\"\",\"\"click\"\")\"");
+});
+
 test("escapeCsvValue quotes when needed", () => {
   assert.equal(escapeCsvValue("plain"), "plain");
   assert.equal(escapeCsvValue('He said "hi", then left'), '"He said ""hi"", then left"');
@@ -117,4 +134,30 @@ test("formatDurationLabel formats minutes and seconds", () => {
   assert.equal(formatDurationLabel(59), "0:59");
   assert.equal(formatDurationLabel(null), "");
   assert.equal(formatDurationLabel(-4), "");
+});
+
+test("createSerialQueue serializes async tasks and recovers after errors", async () => {
+  const queue = createSerialQueue();
+  const order = [];
+
+  const first = queue.enqueue(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 15));
+    order.push(1);
+    return "one";
+  });
+
+  const failing = queue.enqueue(async () => {
+    order.push(2);
+    throw new Error("boom");
+  });
+
+  const third = queue.enqueue(async () => {
+    order.push(3);
+    return "three";
+  });
+
+  assert.equal(await first, "one");
+  await assert.rejects(failing, /boom/);
+  assert.equal(await third, "three");
+  assert.deepEqual(order, [1, 2, 3]);
 });

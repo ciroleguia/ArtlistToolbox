@@ -1,16 +1,18 @@
 {
   "manifest_version": 3,
   "name": "Artlist Toolbox",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "description": "Artlist library tools.",
-  "permissions": ["tabs", "storage", "contextMenus"],
+  "permissions": ["storage", "contextMenus", "sidePanel"],
   "host_permissions": [
     "https://artlist.io/*",
     "https://*.artlist.io/*",
     "https://www.youtube.com/*",
-    "https://youtube.com/*",
-    "https://y2mate.gs/*"
+    "https://youtube.com/*"
   ],
+  "side_panel": {
+    "default_path": "rankings/rankings.html"
+  },
   "background": {
     "service_worker": "src/background.js",
     "type": "module"
@@ -20,14 +22,12 @@
       "matches": ["https://artlist.io/*", "https://*.artlist.io/*"],
       "js": ["src/early-guard.js"],
       "css": ["src/styles.css"],
-      "run_at": "document_start",
-      "all_frames": true
+      "run_at": "document_start"
     },
     {
       "matches": ["https://artlist.io/*", "https://*.artlist.io/*"],
       "js": ["src/content.js"],
-      "run_at": "document_idle",
-      "all_frames": true
+      "run_at": "document_idle"
     }
   ],
   "icons": {

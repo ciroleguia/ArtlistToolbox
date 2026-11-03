@@ -8,38 +8,85 @@ import {
   scoreCandidates
 } from "./lib/matcher.js";
 import {
-  buildY2mateUrl,
+  buildConverterUrl,
+  buildWatchUrl,
   buildYoutubeSearchUrl,
   extractVideoCandidates,
+  isValidConverterTemplate,
   isValidVideoId
 } from "./lib/youtube.js";
-import { DEFAULT_SETTINGS, MEMORY_LIMIT, PROCESSED_LIMIT, RECENT_LIMIT, STATS_DAYS } from "./lib/defaults.js";
+import {
+  DEFAULT_CONVERTER_TEMPLATE,
+  DEFAULT_SETTINGS,
+  MEMORY_LIMIT,
+  PROCESSED_LIMIT,
+  RECENT_LIMIT,
+  STATS_DAYS
+} from "./lib/defaults.js";
 import { buildCsv, formatDurationLabel } from "./lib/csv.js";
-import { buildRankingEntry, countRankings, normalizeRating } from "./lib/rankings.js";
+import {
+  buildRankingEntry,
+  cleanNote,
+  countRankings,
+  normalizeKind,
+  normalizeRating,
+  normalizeTags
+} from "./lib/rankings.js";
+import { parseImportPayload } from "./lib/backup.js";
+import { resolveLanguage, t } from "./lib/i18n.js";
+import { createSerialQueue } from "./lib/storage-queue.js";
 
 const SEARCH_ATTEMPTS = 2;
 const RETRY_DELAY_MS = 500;
 const CANDIDATE_LIMIT = 5;
-const CSV_COLUMNS = ["Title", "Artist", "Duration", "Artlist URL", "YouTube URL", "Rating"];
+const CSV_COLUMNS = [
+  "Title",
+  "Artist",
+  "Kind",
+  "Duration",
+  "Artlist URL",
+  "YouTube URL",
+  "Rating",
+  "Tags",
+  "Note"
+];
+const ARTLIST_URL_PATTERNS = ["https://artlist.io/*", "https://*.artlist.io/*"];
+
+const storageQueue = createSerialQueue();
+const menuQueue = createSerialQueue();
 
 chrome.runtime.onInstalled.addListener(() => {
-  chrome.contextMenus.removeAll(() => {
-    chrome.contextMenus.create({
-      id: "artlist-toolbox-copy-track",
-      title: "Copy track info",
-      contexts: ["page"],
-      documentUrlPatterns: ["https://artlist.io/*", "https://*.artlist.io/*"]
-    });
-    chrome.contextMenus.create({
-      id: "artlist-toolbox-export-csv",
-      title: "Export visible tracks (CSV)",
-      contexts: ["page"],
-      documentUrlPatterns: ["https://artlist.io/*", "https://*.artlist.io/*"]
-    });
-  });
+  void refreshContextMenus();
+});
+
+chrome.runtime.onStartup.addListener(() => {
+  void refreshContextMenus();
+});
+
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === "local" && changes.language) {
+    void refreshContextMenus();
+  }
 });
 
 chrome.contextMenus.onClicked.addListener((info, tab) => {
+  if (info.menuItemId === "artlist-toolbox-open-sidepanel") {
+    if (tab?.windowId !== undefined && chrome.sidePanel?.open) {
+      // Invoke sidePanel.open synchronously in the click listener before awaiting.
+      const openPromise = chrome.sidePanel.open({ windowId: tab.windowId });
+      void (async () => {
+        try {
+          await openPromise;
+        } catch (_error) {
+          await chrome.tabs.create({ url: chrome.runtime.getURL("rankings/rankings.html") });
+        }
+      })();
+      return;
+    }
+    void chrome.tabs.create({ url: chrome.runtime.getURL("rankings/rankings.html") });
+    return;
+  }
+
   if (!tab?.id) {
     return;
   }
@@ -49,87 +96,133 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
       ? "ARTLIST_CONTEXT_COPY"
       : "ARTLIST_EXPORT_CSV";
 
-  chrome.tabs.sendMessage(tab.id, { type }).catch(() => {
-    // The tab may not be an Artlist page anymore (or the script is not ready).
-  });
+  void sendMessageToTab(tab.id, { type });
 });
+
+const MESSAGE_HANDLERS = {
+  ARTLIST_DOWNLOAD_TRACK: (message) => ({
+    run: () => handleTrackDownload(message.payload, message.options),
+    fallbackKey: "error.youtubeSearchFailed"
+  }),
+  ARTLIST_OPEN_Y2MATE: (message) => ({
+    run: () => handleOpenY2mate(message.payload),
+    fallbackKey: "error.converterOpenFailed"
+  }),
+  ARTLIST_CHECK_PROCESSED: (message) => ({
+    run: () => handleCheckProcessed(message.payload),
+    fallbackKey: null
+  }),
+  ARTLIST_CHECK_RATINGS: (message) => ({
+    run: () => handleCheckRatings(message.payload),
+    fallbackKey: null
+  }),
+  ARTLIST_SET_RATING: (message) => ({
+    run: () => storageQueue.enqueue(() => handleSetRating(message.payload)),
+    fallbackKey: "error.ratingSaveFailed"
+  }),
+  ARTLIST_CLEAR_RATINGS: () => ({
+    run: () => storageQueue.enqueue(() => handleClearRatings()),
+    fallbackKey: null
+  }),
+  ARTLIST_IMPORT_BACKUP: (message) => ({
+    run: () => storageQueue.enqueue(() => handleImportBackup(message.payload)),
+    fallbackKey: "error.backupInvalid"
+  }),
+  ARTLIST_BUILD_CSV: (message) => ({
+    run: () => handleBuildCsv(message.payload),
+    fallbackKey: null
+  })
+};
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-  switch (message?.type) {
-    case "ARTLIST_DOWNLOAD_TRACK":
-      handleTrackDownload(message.payload, message.options)
-        .then((result) => sendResponse({ ok: true, ...result }))
-        .catch((error) => {
-          console.error("[Artlist Toolbox]", error);
-          sendResponse({
-            ok: false,
-            error: error?.message || "No se pudo buscar la cancion en YouTube."
-          });
-        });
-      return true;
-
-    case "ARTLIST_OPEN_Y2MATE":
-      handleOpenY2mate(message.payload)
-        .then((result) => sendResponse({ ok: true, ...result }))
-        .catch((error) => {
-          console.error("[Artlist Toolbox]", error);
-          sendResponse({
-            ok: false,
-            error: error?.message || "No se pudo abrir el conversor."
-          });
-        });
-      return true;
-
-    case "ARTLIST_CHECK_PROCESSED":
-      handleCheckProcessed(message.payload)
-        .then((result) => sendResponse({ ok: true, ...result }))
-        .catch(() => sendResponse({ ok: false }));
-      return true;
-
-    case "ARTLIST_CHECK_RATINGS":
-      handleCheckRatings(message.payload)
-        .then((result) => sendResponse({ ok: true, ...result }))
-        .catch(() => sendResponse({ ok: false }));
-      return true;
-
-    case "ARTLIST_SET_RATING":
-      handleSetRating(message.payload)
-        .then((result) => sendResponse({ ok: true, ...result }))
-        .catch((error) => {
-          console.error("[Artlist Toolbox]", error);
-          sendResponse({
-            ok: false,
-            error: error?.message || "No se pudo guardar la calificación."
-          });
-        });
-      return true;
-
-    case "ARTLIST_CLEAR_RATINGS":
-      handleClearRatings()
-        .then((result) => sendResponse({ ok: true, ...result }))
-        .catch(() => sendResponse({ ok: false }));
-      return true;
-
-    case "ARTLIST_BUILD_CSV":
-      handleBuildCsv(message.payload)
-        .then((result) => sendResponse({ ok: true, ...result }))
-        .catch((error) => sendResponse({ ok: false, error: error?.message }));
-      return true;
-
-    default:
-      return false;
+  const builder = message?.type ? MESSAGE_HANDLERS[message.type] : null;
+  if (!builder) {
+    return false;
   }
+
+  const { run, fallbackKey } = builder(message);
+  (async () => {
+    try {
+      const result = await run();
+      sendResponse({ ok: true, ...result });
+    } catch (error) {
+      console.error("[Artlist Toolbox]", error);
+      const lang = await getActiveLanguage();
+      const fallback = fallbackKey ? t(fallbackKey, {}, lang) : "";
+      sendResponse({
+        ok: false,
+        error: error?.message || fallback || "Operation failed."
+      });
+    }
+  })();
+
+  return true;
 });
 
+async function refreshContextMenus() {
+  return menuQueue.enqueue(async () => {
+    const lang = await getActiveLanguage();
+    await removeAllContextMenus();
+    createContextMenu({
+      id: "artlist-toolbox-copy-track",
+      title: t("menu.copyTrack", {}, lang),
+      contexts: ["page"],
+      documentUrlPatterns: ARTLIST_URL_PATTERNS
+    });
+    createContextMenu({
+      id: "artlist-toolbox-export-csv",
+      title: t("menu.exportCsv", {}, lang),
+      contexts: ["page"],
+      documentUrlPatterns: ARTLIST_URL_PATTERNS
+    });
+    createContextMenu({
+      id: "artlist-toolbox-open-sidepanel",
+      title: t("menu.openSidePanel", {}, lang),
+      contexts: ["page"],
+      documentUrlPatterns: ARTLIST_URL_PATTERNS
+    });
+  });
+}
+
+function removeAllContextMenus() {
+  return new Promise((resolve) => {
+    chrome.contextMenus.removeAll(() => {
+      void chrome.runtime.lastError;
+      resolve();
+    });
+  });
+}
+
+function createContextMenu(properties) {
+  chrome.contextMenus.create(properties, () => {
+    void chrome.runtime.lastError;
+  });
+}
+
+async function sendMessageToTab(tabId, payload) {
+  try {
+    await chrome.tabs.sendMessage(tabId, payload);
+  } catch (_error) {
+    // The tab may not be an Artlist page anymore (or the content script is not ready).
+  }
+}
+
+async function getActiveLanguage() {
+  const { language } = await chrome.storage.local.get({ language: DEFAULT_SETTINGS.language });
+  return resolveLanguage(language);
+}
+
 async function handleTrackDownload(rawTrack, options = {}) {
+  const settings = await getSettings();
+  const lang = settings.lang;
   const track = normalizeTrack(rawTrack);
+
   if (!track.title && !track.artist) {
-    throw new Error("No pude detectar el nombre de la cancion ni el artista.");
+    throw new Error(t("error.missingTrackInfo", {}, lang));
   }
 
-  const settings = await getSettings();
   if (!settings.enabled) {
-    throw new Error("El flujo de descarga esta desactivado en el panel.");
+    throw new Error(t("error.flowDisabled", {}, lang));
   }
 
   const mode = options.override || settings.flowMode;
@@ -141,14 +234,14 @@ async function handleTrackDownload(rawTrack, options = {}) {
   if (options.copyOnly) {
     const remembered = fingerprint ? await getMemoryEntry(fingerprint) : null;
     if (remembered?.videoId) {
-      return { mode: "copied", url: buildYoutubeWatchUrl(remembered.videoId), title: remembered.title };
+      return { mode: "copied", url: buildWatchUrl(remembered.videoId), title: remembered.title };
     }
 
     if (mode === "search") {
       return { mode: "copied", url: searchUrl, kind: "search" };
     }
 
-    const candidates = await searchYouTube(track);
+    const candidates = await searchYouTube(track, lang);
     const ranked = scoreCandidates(track, candidates, scoringOptions(settings));
     if (!ranked.length) {
       return { mode: "copied", url: searchUrl, kind: "search" };
@@ -160,7 +253,7 @@ async function handleTrackDownload(rawTrack, options = {}) {
         : pickBestMatch(track, candidates, settings.minScore, scoringOptions(settings)) || ranked[0];
     return {
       mode: "copied",
-      url: buildYoutubeWatchUrl(target.videoId),
+      url: buildWatchUrl(target.videoId),
       title: target.title,
       score: target.score
     };
@@ -170,8 +263,13 @@ async function handleTrackDownload(rawTrack, options = {}) {
   if (fingerprint && mode === "auto" && (!options.override || options.override === "auto")) {
     const remembered = await getMemoryEntry(fingerprint);
     if (remembered?.videoId && isValidVideoId(remembered.videoId)) {
-      await openTab(buildY2mateUrl(remembered.videoId), openInBackgroundTab);
-      await recordDownload({ track, video: remembered, fingerprint, remembered: true });
+      await openTab(
+        buildConverterUrl(remembered.videoId, settings.converterUrlTemplate),
+        openInBackgroundTab
+      );
+      await storageQueue.enqueue(() =>
+        recordDownload({ track, video: remembered, fingerprint, remembered: true, settings })
+      );
       return { mode: "auto", remembered: true, video: remembered };
     }
   }
@@ -181,16 +279,14 @@ async function handleTrackDownload(rawTrack, options = {}) {
     return { mode: "search" };
   }
 
-  const candidates = await searchYouTube(track);
+  const candidates = await searchYouTube(track, lang);
   const ranked = scoreCandidates(track, candidates, scoringOptions(settings));
   const memoryVideoId = fingerprint ? (await getMemoryEntry(fingerprint))?.videoId || null : null;
 
   if (mode === "ask") {
     if (!ranked.length) {
       await openTab(searchUrl, openInBackgroundTab);
-      throw new Error(
-        "No encontre resultados. Abri la busqueda de YouTube para revisar manualmente."
-      );
+      throw new Error(t("error.noResultsManualSearch", {}, lang));
     }
     return {
       mode: "ask",
@@ -207,9 +303,7 @@ async function handleTrackDownload(rawTrack, options = {}) {
     if (options.queueMode) {
       return { mode: "search", reason: "no-match" };
     }
-    throw new Error(
-      "No encontre un video suficientemente parecido. Abri la busqueda de YouTube para revisar manualmente."
-    );
+    throw new Error(t("error.lowConfidenceManualSearch", {}, lang));
   }
 
   // ---- Duration veto: force manual pick when durations disagree ----
@@ -227,23 +321,28 @@ async function handleTrackDownload(rawTrack, options = {}) {
     };
   }
 
-  await openTab(buildY2mateUrl(bestMatch.videoId), openInBackgroundTab);
-  await recordDownload({ track, video: bestMatch, fingerprint });
+  await openTab(
+    buildConverterUrl(bestMatch.videoId, settings.converterUrlTemplate),
+    openInBackgroundTab
+  );
+  await storageQueue.enqueue(() => recordDownload({ track, video: bestMatch, fingerprint, settings }));
   return { mode: "auto", video: bestMatch };
 }
 
 async function handleOpenY2mate(payload = {}) {
-  const videoId = String(payload.videoId || "");
-  if (!isValidVideoId(videoId)) {
-    throw new Error("El video seleccionado no es valido.");
-  }
-
   const settings = await getSettings();
-  if (!settings.enabled) {
-    throw new Error("El flujo de descarga esta desactivado en el panel.");
+  const lang = settings.lang;
+  const videoId = String(payload.videoId || "");
+
+  if (!isValidVideoId(videoId)) {
+    throw new Error(t("error.invalidVideo", {}, lang));
   }
 
-  await openTab(buildY2mateUrl(videoId), settings.openInBackground);
+  if (!settings.enabled) {
+    throw new Error(t("error.flowDisabled", {}, lang));
+  }
+
+  await openTab(buildConverterUrl(videoId, settings.converterUrlTemplate), settings.openInBackground);
 
   const track = payload.track
     ? normalizeTrack(payload.track)
@@ -254,17 +353,20 @@ async function handleOpenY2mate(payload = {}) {
     artist: cleanText(payload.artist) || track.artist
   };
 
-  await recordDownload({
-    track,
-    video,
-    fingerprint: settings.memoryEnabled ? buildFingerprint(track) : ""
-  });
+  await storageQueue.enqueue(() =>
+    recordDownload({
+      track,
+      video,
+      fingerprint: settings.memoryEnabled ? buildFingerprint(track) : "",
+      settings
+    })
+  );
 
   return { videoId };
 }
 
 async function handleCheckProcessed(payload = {}) {
-  const tracks = Array.isArray(payload.tracks) ? payload.tracks.slice(0, 200) : [];
+  const tracks = Array.isArray(payload.tracks) ? payload.tracks.slice(0, 500) : [];
   const { processed } = await chrome.storage.local.get({ processed: {} });
 
   const results = tracks.map((track) => {
@@ -277,24 +379,31 @@ async function handleCheckProcessed(payload = {}) {
 }
 
 async function handleCheckRatings(payload = {}) {
-  const tracks = Array.isArray(payload.tracks) ? payload.tracks.slice(0, 200) : [];
+  const tracks = Array.isArray(payload.tracks) ? payload.tracks.slice(0, 500) : [];
   const { rankings } = await chrome.storage.local.get({ rankings: {} });
 
   const results = tracks.map((track) => {
     const fingerprint = buildFingerprint(track);
-    const rating = fingerprint ? normalizeRating(rankings[fingerprint]?.rating) : 0;
-    return { rating };
+    const entry = fingerprint ? rankings[fingerprint] : null;
+    const rating = normalizeRating(entry?.rating);
+    return {
+      rating,
+      tags: rating ? normalizeTags(entry?.tags) : [],
+      note: rating ? cleanNote(entry?.note) : ""
+    };
   });
 
   return { results };
 }
 
 async function handleSetRating(payload = {}) {
-  const track = normalizeTrack(payload.track || {});
+  const lang = await getActiveLanguage();
+  const rawTrack = payload.track || {};
+  const track = normalizeTrack(rawTrack);
   const rating = normalizeRating(payload.rating);
   const fingerprint = buildFingerprint(track);
   if (!fingerprint) {
-    throw new Error("No pude detectar el nombre ni el artista de la pista.");
+    throw new Error(t("error.missingTrackInfo", {}, lang));
   }
 
   const { rankings } = await chrome.storage.local.get({ rankings: {} });
@@ -302,21 +411,29 @@ async function handleSetRating(payload = {}) {
   // Rating 0 clears the entry instead of storing a zero star.
   if (!rating) {
     if (rankings[fingerprint]) {
-      delete rankings[fingerprint];
-      await chrome.storage.local.set({ rankings });
+      const next = { ...rankings };
+      delete next[fingerprint];
+      await chrome.storage.local.set({ rankings: next });
     }
     return { rating: 0 };
   }
 
   const entry = buildRankingEntry({
-    track: { ...track, url: payload.track?.url || "" },
+    track: {
+      ...track,
+      url: rawTrack.url || "",
+      kind: rawTrack.kind
+    },
     rating,
+    tags: payload.tags,
+    note: payload.note,
+    kind: payload.kind ?? rawTrack.kind,
     previous: rankings[fingerprint] || null,
     now: Date.now()
   });
 
   await chrome.storage.local.set({ rankings: { ...rankings, [fingerprint]: entry } });
-  return { rating: entry.rating, entry };
+  return { rating: entry.rating, entry, fingerprint };
 }
 
 async function handleClearRatings() {
@@ -324,6 +441,21 @@ async function handleClearRatings() {
   const removed = countRankings(rankings);
   await chrome.storage.local.set({ rankings: {} });
   return { removed };
+}
+
+async function handleImportBackup(payload = {}) {
+  const lang = await getActiveLanguage();
+  const current = await chrome.storage.local.get(DEFAULT_SETTINGS);
+  const parsed = parseImportPayload(payload.raw, current, {
+    merge: payload.merge !== false
+  });
+
+  if (!parsed.ok) {
+    throw new Error(t("error.backupInvalid", {}, lang));
+  }
+
+  await chrome.storage.local.set(parsed.patch);
+  return { kind: parsed.kind, counts: parsed.counts };
 }
 
 async function handleBuildCsv(payload = {}) {
@@ -340,14 +472,19 @@ async function handleBuildCsv(payload = {}) {
       ? processed[fingerprint]?.videoId || matchMemory[fingerprint]?.videoId
       : "";
     const videoId = isValidVideoId(stored) ? stored : "";
-    const rating = fingerprint ? normalizeRating(rankings[fingerprint]?.rating) : 0;
+    const rankingEntry = fingerprint ? rankings[fingerprint] : null;
+    const rating = normalizeRating(rankingEntry?.rating);
+    const kind = normalizeKind(track.kind || rankingEntry?.kind);
     return [
       cleanText(track.title),
       cleanText(track.artist),
+      kind,
       formatDurationLabel(track.duration),
       String(track.url || ""),
-      videoId ? buildYoutubeWatchUrl(videoId) : "",
-      rating ? String(rating) : ""
+      videoId ? buildWatchUrl(videoId) : "",
+      rating ? String(rating) : "",
+      rating ? normalizeTags(rankingEntry?.tags).join(", ") : "",
+      rating ? cleanNote(rankingEntry?.note) : ""
     ];
   });
 
@@ -365,15 +502,21 @@ async function getSettings() {
 
   const minScore = Number(items.minScore);
   const tolerance = Number(items.durationTolerance);
+  const converterUrlTemplate = isValidConverterTemplate(items.converterUrlTemplate)
+    ? items.converterUrlTemplate.trim()
+    : DEFAULT_CONVERTER_TEMPLATE;
 
   return {
+    lang: resolveLanguage(items.language),
     enabled: Boolean(items.enabled),
     flowMode,
     openInBackground: Boolean(items.openInBackground),
     minScore:
       Number.isFinite(minScore) && minScore > 0 ? minScore : DEFAULT_SETTINGS.minScore,
     durationVeto: items.durationVeto !== false,
-    durationTolerance: Number.isFinite(tolerance) && tolerance > 0 ? tolerance : DEFAULT_SETTINGS.durationTolerance,
+    durationTolerance:
+      Number.isFinite(tolerance) && tolerance > 0 ? tolerance : DEFAULT_SETTINGS.durationTolerance,
+    converterUrlTemplate,
     negativeTerms: Array.isArray(items.negativeTerms) ? items.negativeTerms : null,
     preferredTerms: Array.isArray(items.preferredTerms) ? items.preferredTerms : null,
     memoryEnabled: items.memoryEnabled !== false
@@ -387,9 +530,9 @@ function scoringOptions(settings) {
   };
 }
 
-async function searchYouTube(track) {
+async function searchYouTube(track, lang = "en") {
   const url = buildYoutubeSearchUrl(buildSearchQuery(track));
-  let lastError = new Error("No se pudo buscar en YouTube.");
+  let lastError = new Error(t("error.youtubeSearchFailed", {}, lang));
 
   for (let attempt = 1; attempt <= SEARCH_ATTEMPTS; attempt += 1) {
     try {
@@ -401,7 +544,7 @@ async function searchYouTube(track) {
       });
 
       if (!response.ok) {
-        throw new Error(`YouTube respondio con HTTP ${response.status}.`);
+        throw new Error(t("error.youtubeHttp", { status: response.status }, lang));
       }
 
       const html = await response.text();
@@ -410,7 +553,7 @@ async function searchYouTube(track) {
         return candidates.slice(0, 20);
       }
 
-      lastError = new Error("YouTube no devolvio resultados para esta busqueda.");
+      lastError = new Error(t("error.youtubeEmpty", {}, lang));
     } catch (error) {
       lastError = error;
     }
@@ -423,36 +566,38 @@ async function searchYouTube(track) {
   throw lastError;
 }
 
-// Stores recent history, processed history, stats and (when enabled) the
-// match memory entry for this track.
-async function recordDownload({ track, video, fingerprint, remembered = false }) {
-  const settings = await getSettings();
-  const { recent, processed, stats } = await chrome.storage.local.get({
+// Atomically updates recent history, processed history, stats and (when enabled)
+// match memory in a single storage write. Caller must hold storageQueue.
+async function recordDownload({ track, video, fingerprint, remembered = false, settings }) {
+  const activeSettings = settings || (await getSettings());
+  const { recent, processed, matchMemory, stats } = await chrome.storage.local.get({
     recent: [],
     processed: {},
+    matchMemory: {},
     stats: { total: 0, daily: {} }
   });
 
+  const patch = {};
   const videoId = video?.videoId;
+  const now = Date.now();
+
   if (isValidVideoId(videoId)) {
     const nextEntry = {
       videoId,
       title: cleanText(video.title) || cleanText(track.title),
       artist: cleanText(video.artist) || cleanText(track.artist),
-      at: Date.now()
+      at: now
     };
 
-    const nextRecent = [nextEntry, ...recent.filter((item) => item?.videoId !== videoId)].slice(
+    patch.recent = [nextEntry, ...recent.filter((item) => item?.videoId !== videoId)].slice(
       0,
       RECENT_LIMIT
     );
-    await chrome.storage.local.set({ recent: nextRecent });
   }
 
   if (fingerprint) {
     const title = cleanText(track.title) || cleanText(video?.title);
     const artist = cleanText(track.artist) || cleanText(video?.artist);
-    const now = Date.now();
 
     const nextProcessed = {
       ...processed,
@@ -464,10 +609,9 @@ async function recordDownload({ track, video, fingerprint, remembered = false })
         count: (processed[fingerprint]?.count || 0) + 1
       }
     };
-    await chrome.storage.local.set({ processed: pruneProcessed(nextProcessed) });
+    patch.processed = pruneProcessed(nextProcessed);
 
-    if (settings.memoryEnabled && isValidVideoId(videoId)) {
-      const { matchMemory } = await chrome.storage.local.get({ matchMemory: {} });
+    if (activeSettings.memoryEnabled && isValidVideoId(videoId)) {
       const nextMemory = {
         ...matchMemory,
         [fingerprint]: {
@@ -478,16 +622,16 @@ async function recordDownload({ track, video, fingerprint, remembered = false })
           remembered: Boolean(remembered) || Boolean(matchMemory[fingerprint])
         }
       };
-      await chrome.storage.local.set({ matchMemory: pruneMemory(nextMemory) });
+      patch.matchMemory = pruneMemory(nextMemory);
     }
   }
 
-  await chrome.storage.local.set({
-    stats: {
-      total: (Number(stats.total) || 0) + 1,
-      daily: bumpDailyStats(stats.daily)
-    }
-  });
+  patch.stats = {
+    total: (Number(stats?.total) || 0) + 1,
+    daily: bumpDailyStats(stats?.daily)
+  };
+
+  await chrome.storage.local.set(patch);
 }
 
 async function getMemoryEntry(fingerprint) {
@@ -528,10 +672,6 @@ function localDateKey(date) {
   return `${year}-${month}-${day}`;
 }
 
-function buildYoutubeWatchUrl(videoId) {
-  return `https://www.youtube.com/watch?v=${videoId}`;
-}
-
 function toPublicCandidate(candidate) {
   return {
     videoId: candidate.videoId,
@@ -541,7 +681,9 @@ function toPublicCandidate(candidate) {
     lengthText: candidate.lengthText,
     thumbnail: candidate.thumbnail,
     url: candidate.url,
-    score: candidate.score
+    score: candidate.score,
+    isTopic: Boolean(candidate.isTopic),
+    isOfficialArtist: Boolean(candidate.isOfficialArtist)
   };
 }
 

@@ -1,8 +1,24 @@
-// CSV builder used by the background service worker (visible-track export)
-// and by the test suite. Pure functions only.
+// CSV builder used by the background service worker, rankings page, options
+// page and test suite. Pure functions only.
+
+// Guards against spreadsheet formula evaluation (=, @, tab/CR, or non-numeric
+// leading +/- expressions) when opened in Excel, LibreOffice or Google Sheets.
+export function sanitizeCsvCell(value) {
+  const text = String(value ?? "");
+  if (!text) {
+    return "";
+  }
+  if (/^[=@\t\r]/.test(text)) {
+    return `'${text}`;
+  }
+  if (/^[+-]/.test(text) && !/^[+-]\d+(?:\.\d+)?$/.test(text)) {
+    return `'${text}`;
+  }
+  return text;
+}
 
 export function escapeCsvValue(value) {
-  const text = String(value ?? "");
+  const text = sanitizeCsvCell(value);
   if (/[",\r\n]/.test(text)) {
     return `"${text.replace(/"/g, '""')}"`;
   }
@@ -10,9 +26,9 @@ export function escapeCsvValue(value) {
 }
 
 export function buildCsv(columns, rows) {
-  const lines = [columns.map(escapeCsvValue).join(",")];
+  const lines = [columns.map((col) => escapeCsvValue(col)).join(",")];
   rows.forEach((row) => {
-    lines.push(row.map(escapeCsvValue).join(","));
+    lines.push(row.map((cell) => escapeCsvValue(cell)).join(","));
   });
   return lines.join("\r\n");
 }

@@ -5,6 +5,7 @@ import { cleanText } from "./matcher.js";
 
 export const Y2MATE_BASE_URL = "https://y2mate.gs/#";
 export const Y2MATE_MP3_PATH = "/mp3";
+export const DEFAULT_CONVERTER_TEMPLATE = "https://y2mate.gs/#{videoId}/mp3";
 
 const YOUTUBE_SEARCH_URL = "https://www.youtube.com/results?search_query=";
 const YOUTUBE_SEARCH_PARAMS = "&hl=en&gl=US";
@@ -18,8 +19,43 @@ export function buildYoutubeSearchUrl(query) {
   return `${YOUTUBE_SEARCH_URL}${encodeURIComponent(query)}${YOUTUBE_SEARCH_PARAMS}`;
 }
 
+export function isValidConverterTemplate(template) {
+  if (typeof template !== "string") {
+    return false;
+  }
+  const trimmed = template.trim();
+  if (!/^https?:\/\/\S+/i.test(trimmed)) {
+    return false;
+  }
+  return /\{(videoId|youtubeUrl|rawYoutubeUrl)\}/.test(trimmed);
+}
+
+export function buildConverterUrl(videoId, template = DEFAULT_CONVERTER_TEMPLATE) {
+  const safeId = isValidVideoId(videoId) ? videoId : encodeURIComponent(String(videoId || ""));
+  const watchUrl = buildWatchUrl(safeId);
+  const activeTemplate = isValidConverterTemplate(template)
+    ? template.trim()
+    : DEFAULT_CONVERTER_TEMPLATE;
+
+  const built = activeTemplate
+    .replaceAll("{videoId}", safeId)
+    .replaceAll("{youtubeUrl}", encodeURIComponent(watchUrl))
+    .replaceAll("{rawYoutubeUrl}", watchUrl);
+
+  try {
+    const parsed = new URL(built);
+    if (parsed.protocol === "https:" || parsed.protocol === "http:") {
+      return built;
+    }
+  } catch (_error) {
+    // Fall through to default URL.
+  }
+
+  return `${Y2MATE_BASE_URL}${safeId}${Y2MATE_MP3_PATH}`;
+}
+
 export function buildY2mateUrl(videoId) {
-  return `${Y2MATE_BASE_URL}${videoId}${Y2MATE_MP3_PATH}`;
+  return buildConverterUrl(videoId, DEFAULT_CONVERTER_TEMPLATE);
 }
 
 export function isValidVideoId(videoId) {
@@ -147,20 +183,57 @@ function rendererToCandidate(renderer) {
   const videoId = renderer.videoId;
   const lengthText =
     renderer.lengthText?.simpleText || runsToText(renderer.lengthText?.runs) || "";
+  const artist = cleanText(
+    runsToText(renderer.ownerText?.runs) ||
+      runsToText(renderer.longBylineText?.runs) ||
+      runsToText(renderer.shortBylineText?.runs)
+  );
+  const snippetText = extractSnippetText(renderer);
+  const isTopic = /\s-\sTopic$/i.test(artist) || /\bProvided to YouTube by\b/i.test(snippetText);
+  const isOfficialArtist = hasOfficialArtistBadge(renderer.ownerBadges);
 
-  return {
+  const candidate = {
     videoId,
     title: cleanText(runsToText(renderer.title?.runs) || renderer.title?.simpleText),
-    artist: cleanText(
-      runsToText(renderer.ownerText?.runs) ||
-        runsToText(renderer.longBylineText?.runs) ||
-        runsToText(renderer.shortBylineText?.runs)
-    ),
+    artist,
     duration: parseDuration(lengthText),
     lengthText,
     thumbnail: buildThumbnailUrl(videoId),
     url: buildWatchUrl(videoId)
   };
+
+  if (isTopic) {
+    candidate.isTopic = true;
+  }
+  if (isOfficialArtist) {
+    candidate.isOfficialArtist = true;
+  }
+
+  return candidate;
+}
+
+function extractSnippetText(renderer) {
+  const detailed = Array.isArray(renderer?.detailedMetadataSnippets)
+    ? renderer.detailedMetadataSnippets
+        .map((item) => runsToText(item?.snippetText?.runs))
+        .filter(Boolean)
+        .join(" ")
+    : "";
+  const description = runsToText(renderer?.descriptionSnippet?.runs);
+  return cleanText(`${detailed} ${description}`);
+}
+
+function hasOfficialArtistBadge(badges) {
+  if (!Array.isArray(badges)) {
+    return false;
+  }
+  return badges.some((badge) => {
+    const meta = badge?.metadataBadgeRenderer;
+    return (
+      meta?.style === "BADGE_STYLE_TYPE_VERIFIED_ARTIST" ||
+      /official artist/i.test(String(meta?.tooltip || meta?.label || ""))
+    );
+  });
 }
 
 export function walkObject(value, visitor) {

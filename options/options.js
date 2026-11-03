@@ -1,20 +1,29 @@
-// Full settings page. Loaded as an ES module so defaults and CSV helpers
-// stay shared with the background service worker.
+// Full settings page. Loaded as an ES module so defaults, backup, i18n, and CSV
+// helpers stay shared with the background service worker.
 import {
   CONFIG_KEYS,
+  DEFAULT_CONVERTER_TEMPLATE,
   DEFAULT_PREFERRED_TERMS,
   DEFAULT_SETTINGS,
   NEGATIVE_TERMS,
   RECENT_LIMIT,
   STATS_DAYS
 } from "../src/lib/defaults.js";
+import { buildBackupPayload } from "../src/lib/backup.js";
 import { buildCsv } from "../src/lib/csv.js";
-import { countRankings, ratingToStars, sortRankingEntries } from "../src/lib/rankings.js";
+import { applyDomTranslations, resolveLanguage, SUPPORTED_LANGUAGES, t } from "../src/lib/i18n.js";
+import {
+  countRankings,
+  normalizeTags,
+  ratingToStars,
+  sortRankingEntries
+} from "../src/lib/rankings.js";
+import { isValidConverterTemplate } from "../src/lib/youtube.js";
 
-const FLOW_HINTS = {
-  auto: "Search YouTube and open y2mate automatically (memory and duration veto still apply).",
-  ask: "Show the top matches and let me pick one every time.",
-  search: "Only open the YouTube search; never auto-pick."
+const FLOW_HINT_KEYS = {
+  auto: "options.flowHintAuto",
+  ask: "options.flowHintAsk",
+  search: "options.flowHintSearch"
 };
 
 const els = {
@@ -26,6 +35,9 @@ const els = {
   background: document.getElementById("opt-background"),
   veto: document.getElementById("opt-veto"),
   vetoTolerance: document.getElementById("opt-veto-tolerance"),
+  converterTemplate: document.getElementById("opt-converter-template"),
+  converterReset: document.getElementById("opt-converter-reset"),
+  converterStatus: document.getElementById("opt-converter-status"),
   negativeTerms: document.getElementById("opt-negative-terms"),
   negativeReset: document.getElementById("opt-negative-reset"),
   preferredTerms: document.getElementById("opt-preferred-terms"),
@@ -37,6 +49,7 @@ const els = {
   processedCount: document.getElementById("opt-processed-count"),
   processedList: document.getElementById("opt-processed-list"),
   processedClear: document.getElementById("opt-processed-clear"),
+  language: document.getElementById("opt-language"),
   hideHero: document.getElementById("opt-hide-hero"),
   compact: document.getElementById("opt-compact"),
   processedDim: document.getElementById("opt-processed-dim"),
@@ -46,10 +59,13 @@ const els = {
   rankingsList: document.getElementById("opt-rankings-list"),
   rankingsClear: document.getElementById("opt-rankings-clear"),
   openRankings: document.getElementById("opt-open-rankings"),
+  openSidePanel: document.getElementById("opt-open-sidepanel"),
   popupExport: document.getElementById("opt-popup-export"),
   statsTotal: document.getElementById("opt-stats-total"),
   statsList: document.getElementById("opt-stats-list"),
   statsReset: document.getElementById("opt-stats-reset"),
+  importMerge: document.getElementById("opt-import-merge"),
+  exportBackup: document.getElementById("opt-export-backup"),
   exportConfig: document.getElementById("opt-export-config"),
   importConfig: document.getElementById("opt-import-config"),
   exportRecent: document.getElementById("opt-export-recent"),
@@ -60,19 +76,31 @@ const els = {
 };
 
 let flowMode = "auto";
+let currentLang = "en";
+let currentWindowId = null;
 let state = { ...DEFAULT_SETTINGS };
 let termsSaveTimer = null;
 
-init();
+void init();
 
 async function init() {
   state = await chrome.storage.local.get(DEFAULT_SETTINGS);
+  currentLang = resolveLanguage(state.language);
+
+  try {
+    const win = await chrome.windows.getCurrent();
+    currentWindowId = win?.id ?? null;
+  } catch (_error) {
+    currentWindowId = null;
+  }
+
+  if (!chrome.sidePanel?.open || currentWindowId === null) {
+    els.openSidePanel.hidden = true;
+  }
+
+  applyTranslations();
   applyToUi();
-  renderMemory();
-  renderProcessed();
-  renderRankings();
-  renderStats();
-  renderDiagnostics();
+  renderAllDynamicSections();
   bindEvents();
 
   const version = chrome.runtime.getManifest().version;
@@ -80,12 +108,30 @@ async function init() {
   document.getElementById("footer-version").textContent = `v${version}`;
 }
 
+function applyTranslations() {
+  applyDomTranslations(document, currentLang);
+  document.title = t("options.title", {}, currentLang);
+}
+
+function renderAllDynamicSections() {
+  renderFlowMode();
+  renderMemory();
+  renderProcessed();
+  renderRankings();
+  renderStats();
+  void renderDiagnostics();
+}
+
 function applyToUi() {
   els.enabled.checked = Boolean(state.enabled);
   els.background.checked = Boolean(state.openInBackground);
   els.veto.checked = state.durationVeto !== false;
   els.vetoTolerance.value = Number(state.durationTolerance) || DEFAULT_SETTINGS.durationTolerance;
+  els.converterTemplate.value = isValidConverterTemplate(state.converterUrlTemplate)
+    ? state.converterUrlTemplate.trim()
+    : DEFAULT_CONVERTER_TEMPLATE;
   els.memoryEnabled.checked = state.memoryEnabled !== false;
+  els.language.value = SUPPORTED_LANGUAGES.includes(state.language) ? state.language : "auto";
   els.hideHero.checked = Boolean(state.hideHeroBanner);
   els.compact.checked = Boolean(state.compactRows);
   els.processedDim.checked = state.processedDim !== false;
@@ -123,15 +169,50 @@ function bindEvents() {
     els.minScoreValue.textContent = `${els.minScore.value}%`;
   });
   els.minScore.addEventListener("change", () => {
-    save({ minScore: Number(els.minScore.value) / 100 });
+    void save({ minScore: Number(els.minScore.value) / 100 });
   });
 
   els.vetoTolerance.addEventListener("change", () => {
     const value = Number(els.vetoTolerance.value);
-    save({
+    void save({
       durationTolerance:
         Number.isFinite(value) && value >= 5 ? Math.min(value, 120) : DEFAULT_SETTINGS.durationTolerance
     });
+  });
+
+  els.converterTemplate.addEventListener("change", () => {
+    const trimmed = els.converterTemplate.value.trim();
+    if (!trimmed) {
+      els.converterTemplate.value = DEFAULT_CONVERTER_TEMPLATE;
+      void save({ converterUrlTemplate: DEFAULT_CONVERTER_TEMPLATE });
+      setConverterStatus(t("options.converterSaved", {}, currentLang));
+      return;
+    }
+
+    if (!isValidConverterTemplate(trimmed)) {
+      setConverterStatus(t("options.converterInvalid", {}, currentLang), true);
+      return;
+    }
+
+    els.converterTemplate.value = trimmed;
+    void save({ converterUrlTemplate: trimmed });
+    setConverterStatus(t("options.converterSaved", {}, currentLang));
+  });
+
+  els.converterReset.addEventListener("click", () => {
+    els.converterTemplate.value = DEFAULT_CONVERTER_TEMPLATE;
+    void save({ converterUrlTemplate: DEFAULT_CONVERTER_TEMPLATE });
+    setConverterStatus(t("options.converterSaved", {}, currentLang));
+  });
+
+  els.language.addEventListener("change", async () => {
+    const language = SUPPORTED_LANGUAGES.includes(els.language.value)
+      ? els.language.value
+      : "auto";
+    currentLang = resolveLanguage(language);
+    await save({ language });
+    applyTranslations();
+    renderAllDynamicSections();
   });
 
   els.flowModes.addEventListener("click", (event) => {
@@ -141,13 +222,13 @@ function bindEvents() {
     }
     flowMode = button.dataset.mode;
     renderFlowMode();
-    save({ flowMode, searchOnly: false });
+    void save({ flowMode, searchOnly: false });
   });
 
   const scheduleTermsSave = () => {
     window.clearTimeout(termsSaveTimer);
     termsSaveTimer = window.setTimeout(() => {
-      save({
+      void save({
         negativeTerms: readTerms(els.negativeTerms),
         preferredTerms: readTerms(els.preferredTerms)
       });
@@ -158,15 +239,15 @@ function bindEvents() {
 
   els.negativeReset.addEventListener("click", () => {
     writeTerms(els.negativeTerms, NEGATIVE_TERMS);
-    save({ negativeTerms: [...NEGATIVE_TERMS] });
+    void save({ negativeTerms: [...NEGATIVE_TERMS] });
   });
   els.preferredReset.addEventListener("click", () => {
     writeTerms(els.preferredTerms, DEFAULT_PREFERRED_TERMS);
-    save({ preferredTerms: [...DEFAULT_PREFERRED_TERMS] });
+    void save({ preferredTerms: [...DEFAULT_PREFERRED_TERMS] });
   });
 
   els.memoryClear.addEventListener("click", async () => {
-    if (!window.confirm("Clear every remembered match? The searches will run again.")) {
+    if (!window.confirm(t("options.confirmClearMemory", {}, currentLang))) {
       return;
     }
     await chrome.storage.local.set({ matchMemory: {} });
@@ -175,7 +256,7 @@ function bindEvents() {
   });
 
   els.processedClear.addEventListener("click", async () => {
-    if (!window.confirm("Clear the processed history? Rows will stop being dimmed.")) {
+    if (!window.confirm(t("options.confirmClearProcessed", {}, currentLang))) {
       return;
     }
     await chrome.storage.local.set({ processed: {} });
@@ -184,12 +265,12 @@ function bindEvents() {
   });
 
   els.rankingsClear.addEventListener("click", async () => {
-    if (!window.confirm("Clear every ranked track? This cannot be undone.")) {
+    if (!window.confirm(t("options.confirmClearRankings", {}, currentLang))) {
       return;
     }
     const response = await chrome.runtime.sendMessage({ type: "ARTLIST_CLEAR_RATINGS" });
     if (!response?.ok) {
-      setConfigStatus("Could not clear rankings.", true);
+      setConfigStatus(t("rankings.clearError", {}, currentLang), true);
       return;
     }
     state.rankings = {};
@@ -197,18 +278,57 @@ function bindEvents() {
   });
 
   els.openRankings.addEventListener("click", () => {
-    chrome.tabs.create({ url: chrome.runtime.getURL("rankings/rankings.html") });
+    void chrome.tabs.create({ url: chrome.runtime.getURL("rankings/rankings.html") });
+  });
+
+  els.openSidePanel.addEventListener("click", async () => {
+    if (chrome.sidePanel?.open && currentWindowId !== null) {
+      try {
+        // Call synchronously before awaiting to preserve the user gesture.
+        await chrome.sidePanel.open({ windowId: currentWindowId });
+        return;
+      } catch (_error) {
+        // Fall back to opening Rankings in a tab if sidePanel.open fails.
+      }
+    }
+    await chrome.tabs.create({ url: chrome.runtime.getURL("rankings/rankings.html") });
   });
 
   chrome.storage.onChanged.addListener((changes, area) => {
-    if (area === "local" && changes.rankings) {
+    if (area !== "local") {
+      return;
+    }
+
+    if (changes.language) {
+      state.language = changes.language.newValue || "auto";
+      els.language.value = SUPPORTED_LANGUAGES.includes(state.language) ? state.language : "auto";
+      currentLang = resolveLanguage(state.language);
+      applyTranslations();
+      renderAllDynamicSections();
+      return;
+    }
+
+    if (changes.rankings) {
       state.rankings = changes.rankings.newValue || {};
       renderRankings();
     }
+    if (changes.matchMemory) {
+      state.matchMemory = changes.matchMemory.newValue || {};
+      renderMemory();
+    }
+    if (changes.processed) {
+      state.processed = changes.processed.newValue || {};
+      renderProcessed();
+    }
+    if (changes.stats) {
+      state.stats = changes.stats.newValue || { total: 0, daily: {} };
+      renderStats();
+    }
+    void renderDiagnostics();
   });
 
   els.statsReset.addEventListener("click", async () => {
-    if (!window.confirm("Reset the download stats?")) {
+    if (!window.confirm(t("options.confirmResetStats", {}, currentLang))) {
       return;
     }
     await chrome.storage.local.set({ stats: { total: 0, daily: {} } });
@@ -216,18 +336,19 @@ function bindEvents() {
     renderStats();
   });
 
-  els.exportConfig.addEventListener("click", exportConfig);
-  els.importConfig.addEventListener("change", importConfigFile);
-  els.exportRecent.addEventListener("click", exportRecentCsv);
-  els.restoreDefaults.addEventListener("click", restoreDefaults);
-  els.copyDiagnostics.addEventListener("click", copyDiagnostics);
+  els.exportBackup.addEventListener("click", () => void exportFullBackup());
+  els.exportConfig.addEventListener("click", () => void exportSettingsOnly());
+  els.importConfig.addEventListener("change", (event) => void importBackupFile(event));
+  els.exportRecent.addEventListener("click", () => void exportRecentCsv());
+  els.restoreDefaults.addEventListener("click", () => void restoreDefaults());
+  els.copyDiagnostics.addEventListener("click", () => void copyDiagnostics());
 }
 
 function bindToggle(id, key) {
   const input = document.getElementById(id);
   input.addEventListener("change", () => {
     state[key] = input.checked;
-    save({ [key]: input.checked });
+    void save({ [key]: input.checked });
   });
 }
 
@@ -237,7 +358,8 @@ function renderFlowMode() {
     button.classList.toggle("active", active);
     button.setAttribute("aria-checked", String(active));
   });
-  els.flowHint.textContent = FLOW_HINTS[flowMode] || FLOW_HINTS.auto;
+  const hintKey = FLOW_HINT_KEYS[flowMode] || FLOW_HINT_KEYS.auto;
+  els.flowHint.textContent = t(hintKey, {}, currentLang);
 }
 
 function readTerms(textarea) {
@@ -257,9 +379,17 @@ function renderMemory() {
     (a, b) => (b[1]?.at || 0) - (a[1]?.at || 0)
   );
 
-  els.memoryCount.textContent = entries.length
-    ? `${entries.length} remembered match${entries.length === 1 ? "" : "es"} (max 500).`
-    : "Nothing remembered yet. Pick a video from the ask picker and it will show up here.";
+  if (!entries.length) {
+    els.memoryCount.textContent = t("options.memoryCountEmpty", {}, currentLang);
+  } else if (entries.length === 1) {
+    els.memoryCount.textContent = t("options.memoryCountOne", {}, currentLang);
+  } else {
+    els.memoryCount.textContent = t(
+      "options.memoryCountMany",
+      { count: entries.length },
+      currentLang
+    );
+  }
 
   els.memoryList.textContent = "";
   entries.slice(0, 50).forEach(([fingerprint, entry]) => {
@@ -284,9 +414,17 @@ function renderProcessed() {
     (a, b) => (b[1]?.at || 0) - (a[1]?.at || 0)
   );
 
-  els.processedCount.textContent = entries.length
-    ? `${entries.length} processed track${entries.length === 1 ? "" : "s"} (max 1000).`
-    : "No processed tracks yet.";
+  if (!entries.length) {
+    els.processedCount.textContent = t("options.processedCountEmpty", {}, currentLang);
+  } else if (entries.length === 1) {
+    els.processedCount.textContent = t("options.processedCountOne", {}, currentLang);
+  } else {
+    els.processedCount.textContent = t(
+      "options.processedCountMany",
+      { count: entries.length },
+      currentLang
+    );
+  }
 
   els.processedList.textContent = "";
   entries.slice(0, 30).forEach(([fingerprint, entry]) => {
@@ -311,17 +449,29 @@ function renderRankings() {
   const entries = sortRankingEntries(rankings, "rating");
   const total = countRankings(rankings);
 
-  els.rankingsCount.textContent = total
-    ? `${total} ranked track${total === 1 ? "" : "s"}. Rate tracks on Artlist with 1–5.`
-    : "No ranked tracks yet. Hover a track on Artlist and press 1–5.";
+  if (!total) {
+    els.rankingsCount.textContent = t("options.rankingsCountEmpty", {}, currentLang);
+  } else if (total === 1) {
+    els.rankingsCount.textContent = t("options.rankingsCountOne", {}, currentLang);
+  } else {
+    els.rankingsCount.textContent = t(
+      "options.rankingsCountMany",
+      { count: total },
+      currentLang
+    );
+  }
 
   els.rankingsList.textContent = "";
   entries.slice(0, 20).forEach(([, entry]) => {
     const date = entry.updatedAt ? new Date(entry.updatedAt).toLocaleDateString() : "";
+    const tags = normalizeTags(entry.tags)
+      .map((tag) => `#${tag}`)
+      .join(" ");
+    const kindLabel = entry.kind === "sfx" ? "SFX" : "";
     els.rankingsList.append(
       buildEntryRow({
         title: formatEntryTitle(entry),
-        meta: [ratingToStars(entry.rating), date].filter(Boolean).join(" · "),
+        meta: [ratingToStars(entry.rating), kindLabel, tags, date].filter(Boolean).join(" · "),
         onDelete: async () => {
           const response = await chrome.runtime.sendMessage({
             type: "ARTLIST_SET_RATING",
@@ -330,13 +480,14 @@ function renderRankings() {
                 title: entry.title,
                 artist: entry.artist,
                 duration: entry.duration,
-                url: entry.url
+                url: entry.url,
+                kind: entry.kind
               },
               rating: 0
             }
           });
           if (!response?.ok) {
-            setConfigStatus("Could not remove that ranking.", true);
+            setConfigStatus(t("rankings.saveError", {}, currentLang), true);
             return;
           }
           const { rankings: next } = await chrome.storage.local.get({ rankings: {} });
@@ -351,14 +502,23 @@ function renderRankings() {
 function renderStats() {
   const stats = state.stats || {};
   const total = Number(stats.total) || 0;
-  els.statsTotal.textContent = total
-    ? `${total} download${total === 1 ? "" : "s"} recorded (history kept for ${STATS_DAYS} days).`
-    : "No downloads recorded yet.";
+  if (!total) {
+    els.statsTotal.textContent = t("options.statsEmpty", {}, currentLang);
+  } else if (total === 1) {
+    els.statsTotal.textContent = t("options.statsTotalOne", { days: STATS_DAYS }, currentLang);
+  } else {
+    els.statsTotal.textContent = t(
+      "options.statsTotalMany",
+      { count: total, days: STATS_DAYS },
+      currentLang
+    );
+  }
 
   els.statsList.textContent = "";
   Object.entries(stats.daily || {})
     .sort((a, b) => (a[0] < b[0] ? 1 : -1))
     .forEach(([date, count]) => {
+      const numCount = Number(count) || 0;
       const item = document.createElement("li");
       const main = document.createElement("div");
       main.className = "entry-main";
@@ -367,7 +527,10 @@ function renderStats() {
       title.textContent = date;
       const meta = document.createElement("span");
       meta.className = "entry-meta";
-      meta.textContent = `${count} download${Number(count) === 1 ? "" : "s"}`;
+      meta.textContent =
+        numCount === 1
+          ? t("options.statsDayOne", {}, currentLang)
+          : t("options.statsDayMany", { count: numCount }, currentLang);
       main.append(title, meta);
       item.append(main);
       els.statsList.append(item);
@@ -376,7 +539,7 @@ function renderStats() {
 
 function formatEntryTitle(entry = {}) {
   const artist = String(entry.artist || "").trim();
-  const title = String(entry.title || "").trim() || "Unknown track";
+  const title = String(entry.title || "").trim() || t("toast.untitledTrack", {}, currentLang);
   return artist ? `${artist} — ${title}` : title;
 }
 
@@ -416,7 +579,7 @@ function buildEntryRow({ title, meta, onDelete }) {
   const deleteButton = document.createElement("button");
   deleteButton.type = "button";
   deleteButton.className = "entry-delete";
-  deleteButton.textContent = "Remove";
+  deleteButton.textContent = t("options.removeEntry", {}, currentLang);
   deleteButton.addEventListener("click", onDelete);
 
   item.append(main, deleteButton);
@@ -436,6 +599,7 @@ async function getStateWithBytes() {
   const rankingsCount = countRankings(items.rankings || {});
   const diagnostics = {
     version: chrome.runtime.getManifest().version,
+    lang: resolveLanguage(items.language),
     bytesInUse: bytes,
     memoryCount,
     processedCount,
@@ -447,117 +611,101 @@ async function getStateWithBytes() {
     durationVeto: items.durationVeto !== false,
     durationTolerance: items.durationTolerance
   };
-  return `v${diagnostics.version} · ${bytes} bytes used · ${memoryCount} memory · ${processedCount} processed · ${rankingsCount} ranked · ${diagnostics.recentCount} recent · flow: ${diagnostics.enabled ? "on" : "off"}/${diagnostics.flowMode} · threshold ${Math.round((Number(diagnostics.minScore) || 0.42) * 100)}% · veto ${diagnostics.durationVeto ? `${diagnostics.durationTolerance}s` : "off"}`;
+  return `v${diagnostics.version} (${diagnostics.lang}) · ${bytes} bytes · ${memoryCount} memory · ${processedCount} processed · ${rankingsCount} ranked · ${diagnostics.recentCount} recent · flow: ${diagnostics.enabled ? "on" : "off"}/${diagnostics.flowMode} · threshold ${Math.round((Number(diagnostics.minScore) || 0.42) * 100)}% · veto ${diagnostics.durationVeto ? `${diagnostics.durationTolerance}s` : "off"}`;
 }
 
 async function copyDiagnostics() {
   const text = await getStateWithBytes();
   try {
     await navigator.clipboard.writeText(text);
-    setConfigStatus("Diagnostics copied to the clipboard.");
-  } catch (error) {
-    setConfigStatus("Could not copy diagnostics.", true);
+    setConfigStatus(t("options.diagnosticsCopied", {}, currentLang));
+  } catch (_error) {
+    setConfigStatus(t("options.diagnosticsCopyError", {}, currentLang), true);
   }
 }
 
-async function exportConfig() {
+async function exportFullBackup() {
   const items = await chrome.storage.local.get(DEFAULT_SETTINGS);
-  const config = {};
-  CONFIG_KEYS.forEach((key) => {
-    config[key] = items[key];
-  });
+  const version = chrome.runtime.getManifest().version;
+  const payload = buildBackupPayload(items, version, { includeData: true });
+  const stamp = new Date().toISOString().slice(0, 10);
 
   downloadTextFile(
-    JSON.stringify(config, null, 2),
+    JSON.stringify(payload, null, 2),
+    `artlist-toolbox-backup-${stamp}.json`,
+    "application/json"
+  );
+  setConfigStatus(t("options.backupExported", {}, currentLang));
+}
+
+async function exportSettingsOnly() {
+  const items = await chrome.storage.local.get(DEFAULT_SETTINGS);
+  const version = chrome.runtime.getManifest().version;
+  const payload = buildBackupPayload(items, version, { includeData: false });
+
+  downloadTextFile(
+    JSON.stringify(payload, null, 2),
     "artlist-toolbox-config.json",
     "application/json"
   );
-  setConfigStatus("Config exported.");
+  setConfigStatus(t("options.configExported", {}, currentLang));
 }
 
-async function importConfigFile(event) {
+async function importBackupFile(event) {
   const file = event.target.files?.[0];
   event.target.value = "";
   if (!file) {
     return;
   }
 
+  let raw;
   try {
-    const raw = JSON.parse(await file.text());
-    const clean = sanitizeImportedConfig(raw);
-    const keys = Object.keys(clean);
-    if (!keys.length) {
-      setConfigStatus("That file does not look like an Artlist Toolbox config.", true);
-      return;
-    }
-
-    await chrome.storage.local.set(clean);
-    setConfigStatus(`Imported ${keys.length} setting${keys.length === 1 ? "" : "s"}. Reloading...`);
-    window.setTimeout(() => window.location.reload(), 900);
-  } catch (error) {
-    setConfigStatus("Could not parse that file as JSON.", true);
-  }
-}
-
-function sanitizeImportedConfig(raw) {
-  const clean = {};
-  if (!raw || typeof raw !== "object") {
-    return clean;
+    raw = JSON.parse(await file.text());
+  } catch (_error) {
+    setConfigStatus(t("options.importParseError", {}, currentLang), true);
+    return;
   }
 
-  CONFIG_KEYS.forEach((key) => {
-    if (!(key in raw)) {
-      return;
-    }
-    const value = raw[key];
-
-    switch (key) {
-      case "flowMode":
-        if (value === null || ["auto", "ask", "search"].includes(value)) {
-          clean[key] = value;
-        }
-        break;
-
-      case "minScore": {
-        const num = Number(value);
-        if (Number.isFinite(num) && num > 0 && num <= 1) {
-          clean[key] = num;
-        }
-        break;
-      }
-
-      case "durationTolerance": {
-        const num = Number(value);
-        if (Number.isFinite(num) && num >= 1 && num <= 300) {
-          clean[key] = num;
-        }
-        break;
-      }
-
-      case "negativeTerms":
-      case "preferredTerms":
-        if (value === null) {
-          clean[key] = null;
-        } else if (Array.isArray(value)) {
-          clean[key] = value
-            .map((term) => String(term).trim())
-            .filter(Boolean)
-            .slice(0, 100);
-        }
-        break;
-
-      default:
-        if (typeof value === "boolean") {
-          clean[key] = value;
-        }
+  const response = await chrome.runtime.sendMessage({
+    type: "ARTLIST_IMPORT_BACKUP",
+    payload: {
+      raw,
+      merge: Boolean(els.importMerge.checked)
     }
   });
 
-  return clean;
+  if (!response?.ok) {
+    setConfigStatus(response?.error || t("options.importInvalid", {}, currentLang), true);
+    return;
+  }
+
+  const summary = formatImportSummary(response.counts);
+  setConfigStatus(t("options.importSuccess", { summary }, currentLang));
+  window.setTimeout(() => window.location.reload(), 900);
+}
+
+function formatImportSummary(counts = {}) {
+  const parts = [];
+  if (counts.settings) {
+    parts.push(t("options.summarySettings", { count: counts.settings }, currentLang));
+  }
+  if (counts.rankings) {
+    parts.push(t("options.summaryRankings", { count: counts.rankings }, currentLang));
+  }
+  if (counts.matchMemory) {
+    parts.push(t("options.summaryMemory", { count: counts.matchMemory }, currentLang));
+  }
+  if (counts.processed) {
+    parts.push(t("options.summaryProcessed", { count: counts.processed }, currentLang));
+  }
+  if (counts.recent) {
+    parts.push(t("options.summaryRecent", { count: counts.recent }, currentLang));
+  }
+  return parts.length ? parts.join(", ") : t("options.summaryBackup", {}, currentLang);
 }
 
 async function restoreDefaults() {
-  if (!window.confirm("Restore every setting on this page to its default? Memory, history, stats and rankings are NOT touched.")) {
+  if (!window.confirm(t("options.confirmRestoreDefaults", {}, currentLang))) {
     return;
   }
 
@@ -567,14 +715,14 @@ async function restoreDefaults() {
   });
 
   await chrome.storage.local.set(defaults);
-  setConfigStatus("Defaults restored. Reloading...");
+  setConfigStatus(t("options.defaultsRestored", {}, currentLang));
   window.setTimeout(() => window.location.reload(), 900);
 }
 
 async function exportRecentCsv() {
   const { recent } = await chrome.storage.local.get({ recent: [] });
   if (!recent.length) {
-    setConfigStatus("No recent downloads to export.", true);
+    setConfigStatus(t("options.noRecentExport", {}, currentLang), true);
     return;
   }
 
@@ -587,7 +735,7 @@ async function exportRecentCsv() {
 
   const csv = buildCsv(["Title", "Artist", "YouTube URL", "Date"], rows);
   downloadTextFile(`\ufeff${csv}`, "artlist-recent.csv", "text/csv");
-  setConfigStatus("Recent downloads exported.");
+  setConfigStatus(t("options.recentExported", {}, currentLang));
 }
 
 function downloadTextFile(text, filename, mime = "text/plain") {
@@ -602,14 +750,19 @@ function downloadTextFile(text, filename, mime = "text/plain") {
   window.setTimeout(() => URL.revokeObjectURL(url), 5000);
 }
 
+function setConverterStatus(message, isError = false) {
+  els.converterStatus.hidden = false;
+  els.converterStatus.textContent = message;
+  els.converterStatus.classList.toggle("error", isError);
+}
+
 function setConfigStatus(message, isError = false) {
   els.configStatus.hidden = false;
   els.configStatus.textContent = message;
   els.configStatus.classList.toggle("error", isError);
 }
 
-function save(patch) {
-  chrome.storage.local.set(patch, () => {
-    state = { ...state, ...patch };
-  });
+async function save(patch) {
+  state = { ...state, ...patch };
+  await chrome.storage.local.set(patch);
 }

@@ -1,28 +1,59 @@
+// Sanity check for manifest.json: valid JSON, MV3, required fields, and every
+// referenced file exists on disk.
+
 import { existsSync, readFileSync } from "node:fs";
+import { resolve } from "node:path";
 
-const manifest = JSON.parse(readFileSync("manifest.json", "utf8"));
+const root = process.cwd();
+const manifestPath = resolve(root, "manifest.json");
+const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
 
-const referencedFiles = [
-  manifest.background?.service_worker,
-  manifest.action?.default_popup,
-  manifest.options_ui?.page,
-  ...(manifest.content_scripts ?? []).flatMap((entry) => [
-    ...(entry.js ?? []),
-    ...(entry.css ?? [])
-  ]),
-  ...Object.values(manifest.icons ?? {})
-].filter(Boolean);
+const errors = [];
 
-const missing = [...new Set(referencedFiles)].filter((file) => !existsSync(file));
-
-if (missing.length) {
-  console.error("manifest.json references missing files:");
-  missing.forEach((file) => console.error(`  - ${file}`));
-  process.exit(1);
+if (manifest.manifest_version !== 3) {
+  errors.push(`Expected manifest_version 3, got ${manifest.manifest_version}`);
 }
 
-if (!manifest.version || !manifest.background?.service_worker) {
-  console.error("manifest.json is missing required fields.");
+if (!/^\d+\.\d+\.\d+$/.test(manifest.version || "")) {
+  errors.push(`Invalid version "${manifest.version}"`);
+}
+
+const files = new Set();
+
+if (manifest.background?.service_worker) {
+  files.add(manifest.background.service_worker);
+}
+
+if (manifest.action?.default_popup) {
+  files.add(manifest.action.default_popup);
+}
+
+if (manifest.options_ui?.page) {
+  files.add(manifest.options_ui.page);
+}
+
+if (manifest.side_panel?.default_path) {
+  files.add(manifest.side_panel.default_path);
+}
+
+Object.values(manifest.icons || {}).forEach((icon) => files.add(icon));
+
+(manifest.content_scripts || []).forEach((entry) => {
+  if (entry.all_frames) {
+    errors.push("content_scripts must not enable all_frames");
+  }
+  (entry.js || []).forEach((file) => files.add(file));
+  (entry.css || []).forEach((file) => files.add(file));
+});
+
+files.forEach((file) => {
+  if (!existsSync(resolve(root, file))) {
+    errors.push(`Missing file referenced by manifest.json: ${file}`);
+  }
+});
+
+if (errors.length) {
+  errors.forEach((err) => console.error(`ERROR: ${err}`));
   process.exit(1);
 }
 

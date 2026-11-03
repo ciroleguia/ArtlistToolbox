@@ -12,15 +12,21 @@
         <img src="../icons/icon48.png" alt="" class="logo">
         <div class="header-copy">
           <h1>Artlist Toolbox</h1>
-          <p>Library tools for Artlist.</p>
+          <p data-i18n="popup.subtitle">Library tools for Artlist.</p>
         </div>
-        <button id="open-rankings" class="icon-button" type="button" aria-label="Rankings" title="Rankings">
+        <button id="open-sidepanel" class="icon-button" type="button" data-i18n-aria-label="popup.sidePanel" data-i18n-title="popup.sidePanel" aria-label="Open Rankings side panel" title="Open Rankings side panel">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+            <rect x="3" y="3" width="18" height="18" rx="2"></rect>
+            <line x1="15" y1="3" x2="15" y2="21"></line>
+          </svg>
+        </button>
+        <button id="open-rankings" class="icon-button" type="button" data-i18n-aria-label="popup.rankings" data-i18n-title="popup.rankings" aria-label="Rankings" title="Rankings">
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
             <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path>
           </svg>
           <span id="rankings-count" class="icon-badge" hidden></span>
         </button>
-        <button id="open-options" class="icon-button" type="button" aria-label="Settings" title="Settings">
+        <button id="open-options" class="icon-button" type="button" data-i18n-aria-label="popup.settings" data-i18n-title="popup.settings" aria-label="Settings" title="Settings">
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
             <circle cx="12" cy="12" r="3"></circle>
             <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h.01a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h.01a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.01a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
@@ -28,14 +34,14 @@
         </button>
       </header>
 
-      <button id="open-artlist" class="primary-button" type="button">
+      <button id="open-artlist" class="primary-button" type="button" data-i18n="popup.openArtlist">
         Open Artlist Music
       </button>
 
       <div class="settings-row">
         <div class="settings-label">
-          <span>Enable Downloader</span>
-          <small>Controls the download flow.</small>
+          <span data-i18n="popup.enableDownloader">Enable Downloader</span>
+          <small data-i18n="popup.enableDownloaderHint">Controls the download flow.</small>
         </div>
         <label class="switch">
           <input type="checkbox" id="toggle-extension">
@@ -45,28 +51,20 @@
 
       <section class="settings-block">
         <div class="settings-head">
-          <span>Download flow</span>
+          <span data-i18n="popup.downloadFlow">Download flow</span>
         </div>
-        <div class="mode-group" id="flow-modes" role="radiogroup" aria-label="Download flow">
-          <button type="button" class="mode-option" data-mode="auto" role="radio">Auto</button>
-          <button type="button" class="mode-option" data-mode="ask" role="radio">Ask me</button>
-          <button type="button" class="mode-option" data-mode="search" role="radio">Search only</button>
+        <div class="mode-group" id="flow-modes" role="radiogroup" data-i18n-aria-label="popup.downloadFlow" aria-label="Download flow">
+          <button type="button" class="mode-option" data-mode="auto" role="radio" data-i18n="popup.modeAuto">Auto</button>
+          <button type="button" class="mode-option" data-mode="ask" role="radio" data-i18n="popup.modeAsk">Ask me</button>
+          <button type="button" class="mode-option" data-mode="search" role="radio" data-i18n="popup.modeSearch">Search only</button>
         </div>
         <small id="flow-hint" class="settings-hint"></small>
       </section>
 
-      <section class="settings-block">
-        <div class="settings-head">
-          <span>Match threshold</span>
-          <small id="threshold-value">42%</small>
-        </div>
-        <input type="range" id="min-score" min="30" max="75" step="5" value="42" aria-label="Match threshold">
-      </section>
-
       <div class="settings-row">
         <div class="settings-label">
-          <span>Hide promo banner</span>
-          <small>Removes the big promo hero on library pages.</small>
+          <span data-i18n="popup.hidePromo">Hide promo banner</span>
+          <small data-i18n="popup.hidePromoHint">Removes the big promo hero on library pages.</small>
         </div>
         <label class="switch">
           <input type="checkbox" id="toggle-hide-hero">
@@ -76,8 +74,8 @@
 
       <div class="settings-row">
         <div class="settings-label">
-          <span>Compact rows</span>
-          <small>Tighter track rows so more of the library fits on screen.</small>
+          <span data-i18n="popup.compactRows">Compact rows</span>
+          <small data-i18n="popup.compactRowsHint">Tighter track rows so more of the library fits on screen.</small>
         </div>
         <label class="switch">
           <input type="checkbox" id="toggle-compact">
@@ -87,8 +85,8 @@
 
       <div class="settings-row">
         <div class="settings-label">
-          <span>Track rankings</span>
-          <small>Rate tracks with 1–5; press f to focus favorites.</small>
+          <span data-i18n="popup.trackRankings">Track rankings</span>
+          <small data-i18n="popup.trackRankingsHint">Rate with 1–5 · t for tags/note · f to focus favorites.</small>
         </div>
         <label class="switch">
           <input type="checkbox" id="toggle-rankings">
@@ -98,8 +96,8 @@
 
       <div class="settings-row">
         <div class="settings-label">
-          <span>Open in background</span>
-          <small>Don't focus the tab we open.</small>
+          <span data-i18n="popup.openInBackground">Open in background</span>
+          <small data-i18n="popup.openInBackgroundHint">Don't focus the tab we open.</small>
         </div>
         <label class="switch">
           <input type="checkbox" id="toggle-background">
@@ -107,23 +105,38 @@
         </label>
       </div>
 
-      <button id="export-csv" class="secondary-button" type="button" hidden>
+      <button id="export-csv" class="secondary-button" type="button" data-i18n="popup.exportCsv" hidden>
         Export visible tracks (CSV)
       </button>
       <p id="popup-status" class="popup-status" hidden></p>
 
+      <section class="shortcuts">
+        <div class="shortcuts-head">
+          <span data-i18n="popup.shortcutsTitle">Shortcuts</span>
+        </div>
+        <div class="shortcuts-grid">
+          <div class="shortcut-item"><kbd>1–5</kbd><span data-i18n="popup.shortcutRate">Rate track</span></div>
+          <div class="shortcut-item"><kbd>t</kbd><span data-i18n="popup.shortcutTags">Tags / Note</span></div>
+          <div class="shortcut-item"><kbd>f</kbd><span data-i18n="popup.shortcutFocus">Focus favs</span></div>
+          <div class="shortcut-item"><kbd>d</kbd><span data-i18n="popup.shortcutDownload">Download</span></div>
+          <div class="shortcut-item"><kbd>c</kbd><span data-i18n="popup.shortcutCopy">Copy info</span></div>
+          <div class="shortcut-item"><kbd>q</kbd><span data-i18n="popup.shortcutQueue">Queue mode</span></div>
+          <div class="shortcut-item"><kbd>/</kbd><span data-i18n="popup.shortcutSearch">Search</span></div>
+        </div>
+      </section>
+
       <section class="recent">
         <div class="recent-head">
-          <span>Recent downloads</span>
-          <button id="clear-recent" type="button">Clear</button>
+          <span data-i18n="popup.recentDownloads">Recent downloads</span>
+          <button id="clear-recent" type="button" data-i18n="popup.clear">Clear</button>
         </div>
         <ul id="recent-list"></ul>
-        <p id="recent-empty">No recent downloads.</p>
+        <p id="recent-empty" data-i18n="popup.noRecent">No recent downloads.</p>
         <p id="stats-line" class="stats-line"></p>
       </section>
 
       <footer class="credits">
-        developed by <a href="https://github.com/ciroleguia" target="_blank" rel="noopener">Ciro</a>
+        <span data-i18n="popup.developedBy">developed by</span> <a href="https://github.com/ciroleguia" target="_blank" rel="noopener">Ciro</a>
         <span id="version" class="version"></span>
       </footer>
     </main>

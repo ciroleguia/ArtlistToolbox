@@ -1,18 +1,21 @@
-// Popup UI. Loaded as an ES module so the defaults stay in sync with the
-// background service worker and the options page.
-import { DEFAULT_SETTINGS } from "../src/lib/defaults.js";
+// Popup UI. Loaded as an ES module so defaults, converter URLs, rankings count
+// and bilingual strings stay in sync across all extension contexts.
+import { DEFAULT_CONVERTER_TEMPLATE, DEFAULT_SETTINGS } from "../src/lib/defaults.js";
+import { applyDomTranslations, resolveLanguage, t } from "../src/lib/i18n.js";
+import { countRankings } from "../src/lib/rankings.js";
+import { buildConverterUrl } from "../src/lib/youtube.js";
 
 const ARTLIST_MUSIC_URL = "https://artlist.io/royalty-free-music";
-const Y2MATE_BASE_URL = "https://y2mate.gs/#";
-const ARTLIST_TAB_PATTERN = /^https:\/\/([a-z0-9-]+\.)?artlist\.io\//i;
+const ARTLIST_URL_PATTERNS = ["https://artlist.io/*", "https://*.artlist.io/*"];
 
-const FLOW_HINTS = {
-  auto: "Search YouTube and open y2mate automatically.",
-  ask: "Show the top matches and let me pick one.",
-  search: "Only open the YouTube search."
+const FLOW_HINT_KEYS = {
+  auto: "popup.flowHintAuto",
+  ask: "popup.flowHintAsk",
+  search: "popup.flowHintSearch"
 };
 
 const POPUP_KEYS = [
+  "language",
   "enabled",
   "flowMode",
   "searchOnly",
@@ -22,7 +25,7 @@ const POPUP_KEYS = [
   "rankingsEnabled",
   "rankings",
   "popupExportButton",
-  "minScore",
+  "converterUrlTemplate",
   "recent",
   "stats"
 ];
@@ -33,8 +36,6 @@ const hideHeroCheckbox = document.getElementById("toggle-hide-hero");
 const compactCheckbox = document.getElementById("toggle-compact");
 const rankingsCheckbox = document.getElementById("toggle-rankings");
 const rankingsCount = document.getElementById("rankings-count");
-const minScoreInput = document.getElementById("min-score");
-const thresholdValue = document.getElementById("threshold-value");
 const flowModes = document.getElementById("flow-modes");
 const flowHint = document.getElementById("flow-hint");
 const recentList = document.getElementById("recent-list");
@@ -42,59 +43,79 @@ const recentEmpty = document.getElementById("recent-empty");
 const statsLine = document.getElementById("stats-line");
 const popupStatus = document.getElementById("popup-status");
 const exportButton = document.getElementById("export-csv");
+const sidePanelButton = document.getElementById("open-sidepanel");
 
+let currentLang = resolveLanguage("auto");
 let flowMode = "auto";
+let converterUrlTemplate = DEFAULT_CONVERTER_TEMPLATE;
+let openInBackground = false;
+let latestRecent = [];
+let latestStats = {};
+let currentWindowId = null;
 let statusTimer = null;
 
 const popupDefaults = Object.fromEntries(POPUP_KEYS.map((key) => [key, DEFAULT_SETTINGS[key]]));
 
-chrome.storage.local.get(popupDefaults, (items) => {
+void init();
+
+async function init() {
+  if (!chrome.sidePanel?.open) {
+    sidePanelButton.hidden = true;
+  } else {
+    try {
+      const win = await chrome.windows.getCurrent();
+      currentWindowId = win?.id ?? null;
+    } catch (_error) {
+      currentWindowId = null;
+    }
+  }
+
+  const items = await chrome.storage.local.get(popupDefaults);
+  currentLang = resolveLanguage(items.language);
+  applyDomTranslations(document, currentLang);
+
   toggleCheckbox.checked = Boolean(items.enabled);
-  backgroundCheckbox.checked = Boolean(items.openInBackground);
+  openInBackground = Boolean(items.openInBackground);
+  backgroundCheckbox.checked = openInBackground;
   hideHeroCheckbox.checked = Boolean(items.hideHeroBanner);
   compactCheckbox.checked = Boolean(items.compactRows);
   rankingsCheckbox.checked = items.rankingsEnabled !== false;
+  converterUrlTemplate = items.converterUrlTemplate || DEFAULT_CONVERTER_TEMPLATE;
   renderRankingsCount(items.rankings);
   exportButton.hidden = !items.popupExportButton;
-  minScoreInput.value = Math.round(items.minScore * 100);
-  thresholdValue.textContent = `${Math.round(items.minScore * 100)}%`;
 
   flowMode = items.flowMode || (items.searchOnly ? "search" : "auto");
   if (!items.flowMode) {
-    chrome.storage.local.set({ flowMode, searchOnly: false });
+    await chrome.storage.local.set({ flowMode, searchOnly: false });
   }
 
+  latestRecent = items.recent || [];
+  latestStats = items.stats || {};
+
   renderFlowMode();
-  renderRecent(items.recent);
-  renderStats(items.stats);
-});
+  renderRecent(latestRecent);
+  renderStats(latestStats);
+}
 
 toggleCheckbox.addEventListener("change", () => {
-  chrome.storage.local.set({ enabled: toggleCheckbox.checked });
+  void chrome.storage.local.set({ enabled: toggleCheckbox.checked });
 });
 
 backgroundCheckbox.addEventListener("change", () => {
-  chrome.storage.local.set({ openInBackground: backgroundCheckbox.checked });
+  openInBackground = backgroundCheckbox.checked;
+  void chrome.storage.local.set({ openInBackground });
 });
 
 hideHeroCheckbox.addEventListener("change", () => {
-  chrome.storage.local.set({ hideHeroBanner: hideHeroCheckbox.checked });
+  void chrome.storage.local.set({ hideHeroBanner: hideHeroCheckbox.checked });
 });
 
 compactCheckbox.addEventListener("change", () => {
-  chrome.storage.local.set({ compactRows: compactCheckbox.checked });
+  void chrome.storage.local.set({ compactRows: compactCheckbox.checked });
 });
 
 rankingsCheckbox.addEventListener("change", () => {
-  chrome.storage.local.set({ rankingsEnabled: rankingsCheckbox.checked });
-});
-
-minScoreInput.addEventListener("input", () => {
-  thresholdValue.textContent = `${minScoreInput.value}%`;
-});
-
-minScoreInput.addEventListener("change", () => {
-  chrome.storage.local.set({ minScore: Number(minScoreInput.value) / 100 });
+  void chrome.storage.local.set({ rankingsEnabled: rankingsCheckbox.checked });
 });
 
 flowModes.addEventListener("click", (event) => {
@@ -104,50 +125,107 @@ flowModes.addEventListener("click", (event) => {
   }
 
   flowMode = button.dataset.mode;
-  chrome.storage.local.set({ flowMode, searchOnly: false });
+  void chrome.storage.local.set({ flowMode, searchOnly: false });
   renderFlowMode();
 });
 
 document.getElementById("open-artlist").addEventListener("click", () => {
-  chrome.tabs.create({ url: ARTLIST_MUSIC_URL });
+  void chrome.tabs.create({ url: ARTLIST_MUSIC_URL });
   window.close();
 });
 
 exportButton.addEventListener("click", async () => {
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  if (!tab?.id || !ARTLIST_TAB_PATTERN.test(tab.url || "")) {
-    setStatus("Open an Artlist tab first.", true);
+  const [tab] = await chrome.tabs.query({
+    active: true,
+    currentWindow: true
+  });
+  if (!tab?.id || !/^https:\/\/([a-z0-9-]+\.)?artlist\.io\//i.test(tab.url || "")) {
+    setStatus(t("popup.openArtlistFirst", {}, currentLang), true);
     return;
   }
 
   try {
     const response = await chrome.tabs.sendMessage(tab.id, { type: "ARTLIST_EXPORT_CSV" });
     if (response?.ok) {
-      setStatus(`Exporting ${response.count || 0} tracks...`);
+      setStatus(t("popup.exportingTracks", { count: response.count || 0 }, currentLang));
       window.setTimeout(() => window.close(), 900);
     } else {
-      setStatus("No visible tracks to export.", true);
+      setStatus(t("popup.noVisibleTracks", {}, currentLang), true);
     }
-  } catch (error) {
-    setStatus("Could not reach the page. Reload the tab and retry.", true);
+  } catch (_error) {
+    setStatus(t("popup.reloadAndRetry", {}, currentLang), true);
   }
 });
 
+sidePanelButton.addEventListener("click", async () => {
+  // Call chrome.sidePanel.open synchronously before awaiting to preserve the user gesture.
+  if (currentWindowId !== null && chrome.sidePanel?.open) {
+    try {
+      await chrome.sidePanel.open({ windowId: currentWindowId });
+      window.close();
+      return;
+    } catch (_error) {
+      // Fall back to opening Rankings in a tab if sidePanel.open is unsupported.
+    }
+  }
+  await chrome.tabs.create({ url: chrome.runtime.getURL("rankings/rankings.html") });
+  window.close();
+});
+
 document.getElementById("open-options").addEventListener("click", () => {
-  chrome.runtime.openOptionsPage();
+  void chrome.runtime.openOptionsPage();
   window.close();
 });
 
 document.getElementById("open-rankings").addEventListener("click", () => {
-  chrome.tabs.create({ url: chrome.runtime.getURL("rankings/rankings.html") });
+  void chrome.tabs.create({ url: chrome.runtime.getURL("rankings/rankings.html") });
   window.close();
 });
 
-document.getElementById("clear-recent").addEventListener("click", () => {
-  chrome.storage.local.set({ recent: [] }, () => renderRecent([]));
+document.getElementById("clear-recent").addEventListener("click", async () => {
+  await chrome.storage.local.set({ recent: [] });
+  latestRecent = [];
+  renderRecent([]);
 });
 
-chrome.storage.onChanged.addListener((changes) => {
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area !== "local") {
+    return;
+  }
+
+  if (changes.language) {
+    currentLang = resolveLanguage(changes.language.newValue);
+    applyDomTranslations(document, currentLang);
+    renderFlowMode();
+    renderStats(latestStats);
+  }
+  if (changes.enabled) {
+    toggleCheckbox.checked = Boolean(changes.enabled.newValue);
+  }
+  if (changes.flowMode) {
+    flowMode = changes.flowMode.newValue || "auto";
+    renderFlowMode();
+  }
+  if (changes.openInBackground) {
+    openInBackground = Boolean(changes.openInBackground.newValue);
+    backgroundCheckbox.checked = openInBackground;
+  }
+  if (changes.hideHeroBanner) {
+    hideHeroCheckbox.checked = Boolean(changes.hideHeroBanner.newValue);
+  }
+  if (changes.compactRows) {
+    compactCheckbox.checked = Boolean(changes.compactRows.newValue);
+  }
+  if (changes.minScore) {
+    const percent = Math.round(
+      (Number(changes.minScore.newValue) || DEFAULT_SETTINGS.minScore) * 100
+    );
+    minScoreInput.value = percent;
+    thresholdValue.textContent = `${percent}%`;
+  }
+  if (changes.converterUrlTemplate) {
+    converterUrlTemplate = changes.converterUrlTemplate.newValue || DEFAULT_CONVERTER_TEMPLATE;
+  }
   if (changes.popupExportButton) {
     exportButton.hidden = !changes.popupExportButton.newValue;
   }
@@ -158,10 +236,12 @@ chrome.storage.onChanged.addListener((changes) => {
     renderRankingsCount(changes.rankings.newValue);
   }
   if (changes.recent) {
-    renderRecent(changes.recent.newValue || []);
+    latestRecent = changes.recent.newValue || [];
+    renderRecent(latestRecent);
   }
   if (changes.stats) {
-    renderStats(changes.stats.newValue);
+    latestStats = changes.stats.newValue || {};
+    renderStats(latestStats);
   }
 });
 
@@ -172,7 +252,8 @@ function renderFlowMode() {
     button.setAttribute("aria-checked", String(active));
   });
 
-  flowHint.textContent = FLOW_HINTS[flowMode] || FLOW_HINTS.auto;
+  const hintKey = FLOW_HINT_KEYS[flowMode] || FLOW_HINT_KEYS.auto;
+  flowHint.textContent = t(hintKey, {}, currentLang);
 }
 
 function renderRecent(items = []) {
@@ -195,8 +276,13 @@ function renderRecent(items = []) {
 
     button.append(title, meta);
     button.addEventListener("click", () => {
-      chrome.tabs.create({ url: `${Y2MATE_BASE_URL}${item.videoId}/mp3` });
-      window.close();
+      void chrome.tabs.create({
+        url: buildConverterUrl(item.videoId, converterUrlTemplate),
+        active: !openInBackground
+      });
+      if (!openInBackground) {
+        window.close();
+      }
     });
 
     listItem.append(button);
@@ -207,8 +293,6 @@ function renderRecent(items = []) {
 function renderStats(stats = {}) {
   const total = Number(stats?.total) || 0;
   if (!total) {
-    // The Recent downloads section already has its own empty state; keep a
-    // single message instead of two stacked variants.
     statsLine.textContent = "";
     statsLine.hidden = true;
     return;
@@ -222,11 +306,12 @@ function renderStats(stats = {}) {
     .filter(([date]) => date >= cutoff)
     .reduce((sum, [, count]) => sum + (Number(count) || 0), 0);
 
-  statsLine.textContent = `${total} download${total === 1 ? "" : "s"} total · ${week} in the last 7 days`;
+  const key = total === 1 ? "popup.statsLineOne" : "popup.statsLineMany";
+  statsLine.textContent = t(key, { total, week }, currentLang);
 }
 
 function renderRankingsCount(rankings = {}) {
-  const count = rankings && typeof rankings === "object" ? Object.keys(rankings).length : 0;
+  const count = countRankings(rankings);
   rankingsCount.hidden = count === 0;
   rankingsCount.textContent = count > 99 ? "99+" : String(count);
 }
@@ -243,9 +328,12 @@ function setStatus(message, isError = false) {
   popupStatus.textContent = message;
   popupStatus.classList.toggle("error", isError);
   window.clearTimeout(statusTimer);
-  statusTimer = window.setTimeout(() => {
-    popupStatus.hidden = true;
-  }, isError ? 4200 : 2500);
+  statusTimer = window.setTimeout(
+    () => {
+      popupStatus.hidden = true;
+    },
+    isError ? 4200 : 2500
+  );
 }
 
 document.getElementById("version").textContent = `v${chrome.runtime.getManifest().version}`;

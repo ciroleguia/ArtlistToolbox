@@ -1,5 +1,5 @@
-// Matching logic shared by the background service worker and the test suite.
-// Pure functions only: no chrome.* or DOM APIs in this file.
+// Matching logic shared by the background service worker, content script and
+// test suite. Pure functions only: no chrome.* or DOM APIs in this file.
 
 export const DEFAULT_MIN_SCORE = 0.42;
 
@@ -33,6 +33,9 @@ export const DEFAULT_PREFERRED_TERMS = [
 
 export const PREFERRED_BONUS_PER_HIT = 0.05;
 export const PREFERRED_BONUS_MAX = 0.1;
+export const TOPIC_CHANNEL_BONUS = 0.08;
+export const OFFICIAL_ARTIST_BONUS = 0.04;
+export const CANONICAL_BONUS_MAX = 0.1;
 
 export function cleanText(value) {
   return String(value || "")
@@ -40,6 +43,10 @@ export function cleanText(value) {
     .replace(/[“”]/g, "\"")
     .replace(/[’]/g, "'")
     .trim();
+}
+
+export function stripTopicSuffix(value) {
+  return cleanText(value).replace(/\s+-\s+topic$/i, "").trim();
 }
 
 export function normalizeTrack(track = {}) {
@@ -118,6 +125,10 @@ export function levenshteinDistance(a, b) {
   return previous[b.length];
 }
 
+export function isTopicCandidate(candidate) {
+  return Boolean(candidate?.isTopic) || /\s-\sTopic$/i.test(cleanText(candidate?.artist));
+}
+
 export function scoreCandidate(track, candidate, index = 0, options = {}) {
   const negativeTerms = resolveTerms(options.negativeTerms, NEGATIVE_TERMS);
   const preferredTerms = resolveTerms(options.preferredTerms, DEFAULT_PREFERRED_TERMS);
@@ -125,7 +136,7 @@ export function scoreCandidate(track, candidate, index = 0, options = {}) {
   const targetTitle = normalizeForMatch(track.title);
   const targetArtist = normalizeForMatch(track.artist);
   const candidateTitle = normalizeForMatch(candidate.title);
-  const candidateArtist = normalizeForMatch(candidate.artist);
+  const candidateArtist = normalizeForMatch(stripTopicSuffix(candidate.artist));
   const combinedCandidate = `${candidateTitle} ${candidateArtist}`.trim();
 
   const titleScore = targetTitle
@@ -152,11 +163,18 @@ export function scoreCandidate(track, candidate, index = 0, options = {}) {
 
   const rankPenalty = Math.min(index, 10) * 0.015;
   const rawCombined = cleanText(`${candidate.title} ${candidate.artist}`);
+  const canonicalBonus = Math.min(
+    (isTopicCandidate(candidate) ? TOPIC_CHANNEL_BONUS : 0) +
+      (candidate?.isOfficialArtist ? OFFICIAL_ARTIST_BONUS : 0),
+    CANONICAL_BONUS_MAX
+  );
+
   const adjusted =
     score -
     rankPenalty -
     negativeTermPenalty(track, rawCombined, negativeTerms) +
-    preferredTermBonus(rawCombined, preferredTerms);
+    preferredTermBonus(rawCombined, preferredTerms) +
+    canonicalBonus;
   return clamp01(round3(adjusted));
 }
 
@@ -195,7 +213,7 @@ export function durationMismatch(track, candidate, toleranceSeconds = 15) {
   return Math.abs(target - candidateDuration) > (Number.isFinite(tolerance) ? tolerance : 15);
 }
 
-// Stable key for match memory / processed history, based on title + artist.
+// Stable key for match memory / processed history / rankings, based on title + artist.
 export function buildFingerprint(track = {}) {
   const title = normalizeForMatch(track.title);
   const artist = normalizeForMatch(track.artist);

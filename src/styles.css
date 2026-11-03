@@ -5,7 +5,6 @@
   position: relative;
 }
 
-
 .artlist-youtube-mp3-download:hover {
   outline-color: #fbe27a !important;
 }
@@ -31,11 +30,18 @@
   box-sizing: border-box;
   color: #f8fafc;
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, sans-serif;
+  inset: auto;
+  margin: 0;
+  max-width: calc(100vw - 16px);
   padding: 12px;
   position: fixed;
-  width: 360px;
-  max-width: calc(100vw - 16px);
+  width: 372px;
   z-index: 2147483647;
+}
+
+#artlist-y2mate-picker[popover]:is(:popover-open, .\:popover-open),
+#artlist-y2mate-picker.is-open {
+  display: block;
 }
 
 #artlist-y2mate-picker * {
@@ -52,11 +58,26 @@
 }
 
 #artlist-y2mate-picker .artlist-y2mate-picker-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
   list-style: none;
   margin: 0;
   max-height: 320px;
   overflow-y: auto;
   padding: 0;
+}
+
+#artlist-y2mate-picker .artlist-y2mate-candidate-row {
+  align-items: center;
+  border-radius: 8px;
+  display: flex;
+  gap: 4px;
+}
+
+#artlist-y2mate-picker .artlist-y2mate-candidate-row:hover,
+#artlist-y2mate-picker .artlist-y2mate-candidate-row:focus-within {
+  background: rgba(249, 219, 84, 0.14);
 }
 
 #artlist-y2mate-picker .artlist-y2mate-candidate {
@@ -67,16 +88,33 @@
   color: inherit;
   cursor: pointer;
   display: flex;
+  flex: 1 1 auto;
   font-family: inherit;
-  gap: 10px;
+  gap: 8px;
   margin: 0;
+  min-width: 0;
   padding: 6px;
   text-align: left;
-  width: 100%;
 }
 
-#artlist-y2mate-picker .artlist-y2mate-candidate:hover {
-  background: rgba(249, 219, 84, 0.14);
+#artlist-y2mate-picker .artlist-y2mate-candidate:focus-visible {
+  outline: 2px solid #f9db54;
+  outline-offset: -2px;
+}
+
+#artlist-y2mate-picker .artlist-y2mate-candidate-index {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 5px;
+  color: #cbd5e1;
+  display: inline-flex;
+  flex: 0 0 auto;
+  font-size: 10px;
+  font-weight: 700;
+  height: 18px;
+  justify-content: center;
+  width: 18px;
 }
 
 #artlist-y2mate-picker .artlist-y2mate-candidate img {
@@ -84,11 +122,12 @@
   flex: 0 0 auto;
   height: 45px;
   object-fit: cover;
-  width: 80px;
+  width: 76px;
 }
 
 #artlist-y2mate-picker .artlist-y2mate-candidate-info {
   display: flex;
+  flex: 1 1 auto;
   flex-direction: column;
   gap: 3px;
   min-width: 0;
@@ -96,19 +135,67 @@
 
 #artlist-y2mate-picker .artlist-y2mate-candidate-title {
   color: #f8fafc;
+  display: -webkit-box;
   font-size: 12px;
   font-weight: 600;
   line-height: 1.3;
   overflow: hidden;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 #artlist-y2mate-picker .artlist-y2mate-candidate-meta {
-  color: #9aa4b8;
+  color: #cbd5e1;
   font-size: 11px;
   line-height: 1.2;
+}
+
+#artlist-y2mate-picker .artlist-y2mate-candidate-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 2px;
+}
+
+#artlist-y2mate-picker .artlist-y2mate-candidate-badge {
+  background: rgba(249, 219, 84, 0.16);
+  border: 1px solid rgba(249, 219, 84, 0.5);
+  border-radius: 999px;
+  color: #f9db54;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 1px 7px;
+  text-transform: uppercase;
+}
+
+#artlist-y2mate-picker .artlist-y2mate-candidate-badge.topic {
+  background: rgba(96, 165, 250, 0.16);
+  border-color: rgba(96, 165, 250, 0.45);
+  color: #93c5fd;
+}
+
+#artlist-y2mate-picker .artlist-y2mate-candidate-preview {
+  align-items: center;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: #9aa4b8;
+  display: inline-flex;
+  flex: 0 0 auto;
+  font-size: 13px;
+  font-weight: 700;
+  height: 28px;
+  justify-content: center;
+  margin-right: 4px;
+  text-decoration: none;
+  width: 28px;
+}
+
+#artlist-y2mate-picker .artlist-y2mate-candidate-preview:hover,
+#artlist-y2mate-picker .artlist-y2mate-candidate-preview:focus-visible {
+  border-color: rgba(249, 219, 84, 0.45);
+  color: #f9db54;
+  outline: none;
 }
 
 #artlist-y2mate-picker .artlist-y2mate-picker-footer {
@@ -150,16 +237,6 @@
 
 /*
  * "Hide promo banner" page tweak.
- *
- * Targets the promotional hero on Artlist library pages (music/sfx). Three
- * semantic anchors, no nth-child XPaths:
- *   1. guest hero actions testid (music library, anonymous visitors)
- *   2. direct sibling right before the [data-testid="Music"] list container
- *      (covers logged-in variants whose hero keeps no testid)
- *   3. [data-testid="HeroSection"] wrapper (sfx library; unique in #app-root)
- * Anchors keep the rule stable across responsive layouts and React
- * re-renders; if Artlist renames them the rule simply stops matching and
- * never hides unrelated content.
  */
 html[data-artlist-toolbox-hide-hero] #app-root div[class~="flex-col"] > div:has([data-testid="GuestHeroActions"]),
 html[data-artlist-toolbox-hide-hero] #app-root div[class~="flex-col"] > div:has(+ [data-testid="Music"]),
@@ -167,29 +244,8 @@ html[data-artlist-toolbox-hide-hero] #app-root [data-testid="HeroSection"] {
   display: none !important;
 }
 
-/* "Usada antes" chip inside the YouTube candidate picker. */
-#artlist-y2mate-picker .artlist-y2mate-candidate-badge {
-  align-self: flex-start;
-  background: rgba(249, 219, 84, 0.16);
-  border: 1px solid rgba(249, 219, 84, 0.5);
-  border-radius: 999px;
-  color: #f9db54;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  margin-top: 2px;
-  padding: 1px 7px;
-  text-transform: uppercase;
-}
-
 /*
- * "Compact rows" page tweak. Anchors verified against the live app (2026-10):
- *   - Music lists: [data-testid="music-row"] carries its own p-4 padding
- *     (16px top/bottom over a ~50px content): 82px -> 58px per row.
- *   - SFX table: [data-testid="AudioRow"] td wrappers use p-5 / py-5
- *     (20px top/bottom): 93px -> 61px per row.
- * Only these known paddings are shrunk; nothing here can add spacing, so a
- * markup change degrades to a no-op instead of growing the rows.
+ * "Compact rows" page tweak for Music and SFX rows.
  */
 html[data-artlist-toolbox-compact] [data-testid="music-row"] {
   padding-bottom: 4px !important;
@@ -202,39 +258,102 @@ html[data-artlist-toolbox-compact] [data-testid="AudioRow"] td > div.py-5 {
   padding-top: 4px !important;
 }
 
-/* "Processed" dimming: rows already sent through the flow at least once. */
-html[data-artlist-toolbox-dim] [data-artlist-toolbox-row][data-artlist-toolbox-processed] {
-  opacity: 0.6;
+/*
+ * "Processed" / already-downloaded tracks:
+ * - Unranked processed rows gently dim when "Dim processed" is active.
+ * - Ranked tracks keep full brightness (never darkened).
+ * - Matches Artlist's official downloaded state (compact yellow circle icon with dark downward arrow).
+ *   Keeps the button container transparent with no oversized borders, and swaps to the exact icon.
+ */
+html[data-artlist-toolbox-dim] [data-artlist-toolbox-row][data-artlist-toolbox-processed]:not([data-artlist-toolbox-rating]) {
+  opacity: 0.62;
+}
+
+[data-artlist-toolbox-downloaded],
+.artlist-youtube-mp3-download[data-artlist-toolbox-downloaded],
+[data-artlist-toolbox-row][data-artlist-toolbox-processed] .artlist-youtube-mp3-download {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+[data-artlist-toolbox-downloaded]:hover,
+.artlist-youtube-mp3-download[data-artlist-toolbox-downloaded]:hover,
+[data-artlist-toolbox-row][data-artlist-toolbox-processed] .artlist-youtube-mp3-download:hover {
+  background: transparent !important;
+  outline: none !important;
+}
+
+[data-artlist-toolbox-downloaded] > *:not(.artlist-toolbox-downloaded-wrapper),
+.artlist-youtube-mp3-download[data-artlist-toolbox-downloaded] > *:not(.artlist-toolbox-downloaded-wrapper),
+[data-artlist-toolbox-row][data-artlist-toolbox-processed] button[data-artlist-toolbox-downloaded] > *:not(.artlist-toolbox-downloaded-wrapper) {
+  display: none !important;
+}
+
+.artlist-toolbox-downloaded-wrapper {
+  align-items: center !important;
+  display: inline-flex !important;
+  height: 16px !important;
+  justify-content: center !important;
+  line-height: 1 !important;
+  pointer-events: none !important;
+  width: 16px !important;
+}
+
+.artlist-toolbox-downloaded-wrapper svg,
+.artlist-toolbox-downloaded-icon {
+  color: var(--color-accent, #ffcf00) !important;
+  display: block !important;
+  fill: currentColor !important;
+  flex: 0 0 16px !important;
+  height: 16px !important;
+  pointer-events: none !important;
+  vertical-align: middle !important;
+  width: 16px !important;
+}
+
+:not([data-artlist-toolbox-downloaded]) > .artlist-toolbox-downloaded-wrapper,
+.artlist-youtube-mp3-download:not([data-artlist-toolbox-downloaded]) .artlist-toolbox-downloaded-wrapper,
+[data-artlist-toolbox-row]:not([data-artlist-toolbox-processed]) .artlist-toolbox-downloaded-wrapper {
+  display: none !important;
 }
 
 /*
- * Track rankings: a colored left accent plus a compact star badge on rated
- * rows. The row gets `position: relative` only while rated so the ::after
- * badge anchors to it. The badge is a pseudo-element, so React never sees an
- * extra child node in its list.
+ * Track rankings: colored left accent + compact star/tag badge on rated rows.
+ * Ranked tracks NEVER have their opacity lowered.
  */
 html[data-artlist-toolbox-rankings] [data-artlist-toolbox-row][data-artlist-toolbox-rating] {
   box-shadow: inset 3px 0 0 var(--artlist-rating-color, #f9db54) !important;
+  opacity: 1 !important;
   position: relative !important;
 }
 
 html[data-artlist-toolbox-rankings] [data-artlist-toolbox-row][data-artlist-toolbox-rating]::after {
-  background: rgba(20, 22, 27, 0.92);
+  background: rgba(20, 22, 27, 0.94);
   border: 1px solid currentColor;
   border-radius: 999px;
   color: var(--artlist-rating-color, #f9db54);
   content: attr(data-artlist-toolbox-stars);
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, sans-serif;
   font-size: 9px;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
   line-height: 1;
+  max-width: 240px;
+  overflow: hidden;
   padding: 2px 6px;
   pointer-events: none;
   position: absolute;
   left: 4px;
+  text-overflow: ellipsis;
   top: 2px;
+  transition: opacity 0.12s ease;
   white-space: nowrap;
   z-index: 5;
+}
+
+html[data-artlist-toolbox-rankings] [data-artlist-toolbox-row][data-artlist-toolbox-hud-open]::after {
+  opacity: 0;
 }
 
 html[data-artlist-toolbox-rankings] [data-artlist-toolbox-row][data-artlist-toolbox-rating="5"] {
@@ -257,34 +376,101 @@ html[data-artlist-toolbox-rankings] [data-artlist-toolbox-row][data-artlist-tool
   --artlist-rating-color: #64748b;
 }
 
-/* 4+ star tracks stay readable even when they are already in processed history. */
-html[data-artlist-toolbox-dim] [data-artlist-toolbox-row][data-artlist-toolbox-processed][data-artlist-toolbox-rating="4"],
-html[data-artlist-toolbox-dim] [data-artlist-toolbox-row][data-artlist-toolbox-processed][data-artlist-toolbox-rating="5"] {
-  opacity: 1;
+/* "f" focus favorites: soften unranked tracks with comfortable contrast while keeping all ranked tracks at full opacity. */
+html[data-artlist-toolbox-rankings][data-artlist-toolbox-focus-ranked] [data-artlist-toolbox-row]:not([data-artlist-toolbox-rating]) {
+  opacity: 0.40;
+  transition: opacity 0.14s ease;
 }
 
-/* "f" focus favorites: dim everything below the focus threshold. */
-html[data-artlist-toolbox-rankings][data-artlist-toolbox-focus-ranked] [data-artlist-toolbox-row]:not([data-artlist-toolbox-rating="4"]):not([data-artlist-toolbox-rating="5"]) {
-  opacity: 0.25;
+html[data-artlist-toolbox-rankings][data-artlist-toolbox-focus-ranked] [data-artlist-toolbox-row]:not([data-artlist-toolbox-rating]):hover {
+  opacity: 0.92;
 }
 
-/* Floating rating bar shown when a track row is hovered. */
-#artlist-toolbox-rating-hud {
+/* Persistent Focus-favorites status pill. */
+#artlist-toolbox-focus-pill {
   align-items: center;
   background: #14161b;
-  border: 1px solid #2a2f3a;
+  border: 1px solid rgba(249, 219, 84, 0.55);
   border-radius: 999px;
+  bottom: 18px;
   box-shadow: 0 12px 28px rgba(0, 0, 0, 0.5);
-  display: flex;
+  color: #f9db54;
+  display: inline-flex;
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, sans-serif;
-  gap: 2px;
+  gap: 4px;
+  left: 18px;
+  padding: 4px 6px 4px 10px;
+  position: fixed;
+  z-index: 2147483647;
+}
+
+#artlist-toolbox-focus-pill .artlist-toolbox-focus-cycle {
+  background: transparent;
+  border: 0;
+  color: #f9db54;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  padding: 2px 4px;
+}
+
+#artlist-toolbox-focus-pill .artlist-toolbox-focus-cycle:hover {
+  color: #fbe27a;
+}
+
+#artlist-toolbox-focus-pill .artlist-toolbox-focus-exit {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.06);
+  border: 0;
+  border-radius: 999px;
+  color: #cbd5e1;
+  cursor: pointer;
+  display: inline-flex;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  height: 20px;
+  justify-content: center;
+  line-height: 1;
+  padding: 0;
+  width: 20px;
+}
+
+#artlist-toolbox-focus-pill .artlist-toolbox-focus-exit:hover {
+  background: rgba(249, 219, 84, 0.18);
+  color: #f9db54;
+}
+
+/* Floating rating HUD + inline tag/note mini-editor (minimal top-of-row pill). */
+#artlist-toolbox-rating-hud {
+  backdrop-filter: blur(6px);
+  background: rgba(20, 22, 27, 0.94);
+  border: 1px solid rgba(249, 219, 84, 0.35);
+  border-radius: 999px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  box-sizing: border-box;
+  color: #f8fafc;
+  display: flex;
+  flex-direction: column;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, sans-serif;
   opacity: 0;
-  padding: 4px 8px 4px 6px;
+  padding: 1px 5px;
   pointer-events: none;
   position: fixed;
-  transform: translateY(3px);
-  transition: opacity 0.14s ease, transform 0.14s ease;
+  transform: translateY(-2px);
+  transition: opacity 0.12s ease, transform 0.12s ease;
   z-index: 2147483647;
+}
+
+#artlist-toolbox-rating-hud.expanded {
+  background: #14161b;
+  border-color: #2a2f3a;
+  border-radius: 10px;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.55);
+  padding: 7px 9px;
+  width: 268px;
 }
 
 #artlist-toolbox-rating-hud.visible {
@@ -293,13 +479,28 @@ html[data-artlist-toolbox-rankings][data-artlist-toolbox-focus-ranked] [data-art
   transform: translateY(0);
 }
 
+#artlist-toolbox-rating-hud .artlist-toolbox-rating-bar {
+  align-items: center;
+  display: flex;
+  gap: 1px;
+}
+
+#artlist-toolbox-rating-hud .artlist-toolbox-rating-stars {
+  display: inline-flex;
+}
+
 #artlist-toolbox-rating-hud .artlist-toolbox-rating-star {
   background: transparent;
   border: 0;
-  color: #4b5568;
+  color: #94a3b8;
   cursor: pointer;
-  font-size: 16px;
+  font-size: 11px;
   line-height: 1;
+  padding: 1px 2px;
+}
+
+#artlist-toolbox-rating-hud.expanded .artlist-toolbox-rating-star {
+  font-size: 14px;
   padding: 2px 3px;
 }
 
@@ -308,22 +509,129 @@ html[data-artlist-toolbox-rankings][data-artlist-toolbox-focus-ranked] [data-art
   color: #f9db54;
 }
 
+#artlist-toolbox-rating-hud .artlist-toolbox-rating-edit,
 #artlist-toolbox-rating-hud .artlist-toolbox-rating-clear {
   background: transparent;
-  border: 1px solid #3a4150;
+  border: 0;
   border-radius: 999px;
   color: #cbd5e1;
   cursor: pointer;
   font-family: inherit;
   font-size: 10px;
   font-weight: 600;
-  margin-left: 4px;
-  padding: 3px 8px;
+  line-height: 1;
+  margin-left: 1px;
+  padding: 1px 3px;
 }
 
+#artlist-toolbox-rating-hud .artlist-toolbox-rating-clear {
+  font-size: 11px;
+}
+
+#artlist-toolbox-rating-hud .artlist-toolbox-rating-clear[hidden] {
+  display: none !important;
+}
+
+#artlist-toolbox-rating-hud.expanded .artlist-toolbox-rating-edit {
+  margin-left: auto;
+}
+
+#artlist-toolbox-rating-hud .artlist-toolbox-rating-edit:hover,
 #artlist-toolbox-rating-hud .artlist-toolbox-rating-clear:hover {
-  border-color: #f9db54;
+  background: rgba(249, 219, 84, 0.14);
   color: #f9db54;
+}
+
+#artlist-toolbox-rating-hud .artlist-toolbox-rating-editor {
+  border-top: 1px solid #262b36;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 7px;
+  padding-top: 7px;
+}
+
+#artlist-toolbox-rating-hud .artlist-toolbox-rating-editor[hidden] {
+  display: none;
+}
+
+#artlist-toolbox-rating-hud .artlist-toolbox-rating-editor input {
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid #475569;
+  border-radius: 6px;
+  box-sizing: border-box;
+  color: #f8fafc;
+  font-family: inherit;
+  font-size: 11px;
+  padding: 5px 8px;
+  width: 100%;
+}
+
+#artlist-toolbox-rating-hud .artlist-toolbox-rating-editor input::placeholder {
+  color: #94a3b8;
+  opacity: 1;
+}
+
+#artlist-toolbox-rating-hud .artlist-toolbox-rating-editor input:focus {
+  border-color: #f9db54;
+  outline: none;
+}
+
+#artlist-toolbox-rating-hud .artlist-toolbox-tag-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+#artlist-toolbox-rating-hud .artlist-toolbox-tag-suggestions[hidden] {
+  display: none;
+}
+
+#artlist-toolbox-rating-hud .artlist-toolbox-tag-chip {
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid #475569;
+  border-radius: 999px;
+  color: #cbd5e1;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 7px;
+}
+
+#artlist-toolbox-rating-hud .artlist-toolbox-tag-chip:hover,
+#artlist-toolbox-rating-hud .artlist-toolbox-tag-chip.active {
+  background: rgba(249, 219, 84, 0.16);
+  border-color: rgba(249, 219, 84, 0.55);
+  color: #f9db54;
+}
+
+#artlist-toolbox-rating-hud .artlist-toolbox-editor-actions {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+#artlist-toolbox-rating-hud .artlist-toolbox-editor-save,
+#artlist-toolbox-rating-hud .artlist-toolbox-editor-cancel {
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+}
+
+#artlist-toolbox-rating-hud .artlist-toolbox-editor-save {
+  background: #f9db54;
+  border: 1px solid #f9db54;
+  color: #14161b;
+}
+
+#artlist-toolbox-rating-hud .artlist-toolbox-editor-cancel {
+  background: transparent;
+  border: 1px solid #3a4150;
+  color: #cbd5e1;
 }
 
 /* Toast notifications (copy, queue summaries, warnings). */

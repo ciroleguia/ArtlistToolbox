@@ -1,10 +1,14 @@
 // Central defaults for chrome.storage.local.
-// Imported by the background service worker, popup and options page (all ES
-// modules). The content script keeps an inline mirror of the keys it uses.
+// Imported by the background service worker, content script, popup, rankings
+// and options page (all ES modules).
 
 import { DEFAULT_PREFERRED_TERMS, NEGATIVE_TERMS } from "./matcher.js";
+import { DEFAULT_CONVERTER_TEMPLATE } from "./youtube.js";
 
 export const DEFAULT_SETTINGS = {
+  // Localization
+  language: "auto", // "auto" | "en" | "es"
+
   // Download flow
   enabled: false, // opt-in: the YouTube MP3 flow ships disabled
   flowMode: null,
@@ -13,6 +17,7 @@ export const DEFAULT_SETTINGS = {
   minScore: 0.42,
   durationVeto: true,
   durationTolerance: 15,
+  converterUrlTemplate: DEFAULT_CONVERTER_TEMPLATE,
   negativeTerms: null, // null -> matcher's NEGATIVE_TERMS
   preferredTerms: null, // null -> matcher's DEFAULT_PREFERRED_TERMS
 
@@ -46,12 +51,14 @@ export const STATS_DAYS = 14;
 
 // Settings that the options page can export/import as a config file.
 export const CONFIG_KEYS = [
+  "language",
   "enabled",
   "flowMode",
   "openInBackground",
   "minScore",
   "durationVeto",
   "durationTolerance",
+  "converterUrlTemplate",
   "negativeTerms",
   "preferredTerms",
   "memoryEnabled",
@@ -63,4 +70,4 @@ export const CONFIG_KEYS = [
   "popupExportButton"
 ];
 
-export { DEFAULT_PREFERRED_TERMS, NEGATIVE_TERMS };
+export { DEFAULT_CONVERTER_TEMPLATE, DEFAULT_PREFERRED_TERMS, NEGATIVE_TERMS };

@@ -10,20 +10,20 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/Manifest-V3-blue.svg" alt="Manifest V3">
-  <img src="https://img.shields.io/badge/Version-0.7.0-brightgreen.svg" alt="Version 0.7.0">
+  <img src="https://img.shields.io/badge/Version-0.8.0-brightgreen.svg" alt="Version 0.8.0">
   <img src="https://img.shields.io/badge/License-MIT-orange.svg" alt="License MIT">
 </p>
 
-Artlist Toolbox is a Manifest V3 extension for [Artlist](https://artlist.io). It adds library tools to the music pages, including 5-star track rankings, and a flow that searches YouTube for a track (in backend) and opens the y2mate.gs MP3 converter with the selected video.
+Artlist Toolbox is a bilingual (English / Español) Manifest V3 extension for [Artlist](https://artlist.io). It adds video-editor library tools to **Music**, **Sound Effects (SFX)**, and standalone **track detail pages** — including 5-star track rankings with project tags and notes, a Chrome **Side Panel** view, and an optional flow that searches YouTube for a track (prioritizing official `"Artist - Topic"` uploads) and opens a configurable MP3 converter with the selected video.
 
-It's just a tool I made to optimize my daily workflow at my video editing job, and I share it to you all if it can help you as it does for me. :)
+It's a tool I made to optimize my daily workflow at my video editing job, and I share it with everyone in case it helps you too. :)
 
-The download flow is off by default. The page tools and the download flow are separate. Compact rows, the promo banner switch, copying track details, CSV export, processed-track dimming, and track rankings work with the flow disabled. Actions that open the converter, the result picker, or the queue need the flow enabled.
+The download flow ships disabled by default. Page tools and the download flow are completely independent: compact rows, promo banner removal, copying track details, CSV export, processed-track dimming, track rankings, tags/notes, Focus favorites, and the Side Panel all work with the download flow off.
 
 ## Requirements
 
-I only tested it on my Brave browser (Chr. v155), should work in others Chromium-based browsers tho.
-The extension runs from source and has no runtime dependencies.
+Tested on Chromium-based browsers (Chrome, Brave, Edge) with Manifest V3 and Side Panel support.
+The extension runs directly from source with zero runtime dependencies and no bundler.
 
 ## Install
 
@@ -31,116 +31,104 @@ The extension runs from source and has no runtime dependencies.
    ```bash
    git clone https://github.com/ciroleguia/ArtlistToolbox.git
    ```
-2. Open `chrome://extensions`. In Brave, use `brave://extensions`. In Edge, use `edge://extensions`.
-3. Turn on Developer mode.
-4. Click Load unpacked and select the folder that contains `manifest.json`.
+2. Open `chrome://extensions` (`brave://extensions` in Brave, `edge://extensions` in Edge).
+3. Turn on **Developer mode**.
+4. Click **Load unpacked** and select the folder that contains `manifest.json`.
 5. Open [Artlist](https://artlist.io/royalty-free-music). If the site was already open, refresh the tab.
 
 ## Use
 
-Open the extension popup from the toolbar to see the main settings. The gear icon opens the extended settings page, and the star icon opens the Rankings page.
+Open the extension popup from the toolbar to access quick switches. From the header icons you can open **Rankings in the Chrome Side Panel**, the full **Rankings tab**, or the extended **Settings** page.
 
-### Page tools
+### Page tools (Music, SFX & Detail Pages)
 
-Keyboard shortcuts are on by default. You can turn them off in Settings, Page and library.
+Keyboard shortcuts are on by default and can be toggled in **Settings → Page & library**.
 
-- `c` copies the track under the cursor as `Artist - Title (m:ss)`.
+- `c` copies the track under the cursor (or current detail-page track) as `Artist - Title (m:ss)`.
 - `/` focuses the library search field.
-- `1`–`5` rates the track under the cursor; `0` clears the rating. `f` toggles Focus favorites, which dims rows below 4 stars so your favorites stand out.
-- Compact rows reduce the vertical padding of music rows and the sound effects table.
-- Hide promo banner removes the promotional hero from library pages. It leaves the navigation bar and the track list in place.
-- Processed tracks can be dimmed from the stored history.
-- Rated rows get a colored left accent and a `★★★★☆` badge. Ratings are stored locally by title and artist.
-- The star icon in the popup opens the Rankings page: search, sort, filter, edit, remove, export CSV, and clear all.
-- The right-click menu can copy the current track details or export the visible tracks to CSV on Artlist pages.
-- CSV export uses the columns Title, Artist, Duration, Artlist URL, YouTube URL, and Rating. The extension fills the YouTube column from match memory or the processed history when it knows the video, and the Rating column from your ranking. The popup button is hidden until you enable it in Settings, Advanced. The context-menu export is always available.
-- The popup shows the total download count and a 14-day breakdown; the star icon badge shows how many tracks you have ranked.
+- `1`–`5` rates the track under the cursor; `0` clears the rating.
+- `t` opens the inline **Tags & Note** editor on the hovered row (so you can tag tracks like `intro`, `client-acme`, `sfx-hit` or add cue notes like `drop at 1:14`).
+- `f` toggles **Focus favorites**, dimming rows below your star threshold and showing a floating status pill in the bottom-right corner where you can switch between `4+ ★` and `5 ★` or exit.
+- **Compact rows** reduces vertical padding on both Music rows and Sound Effects (`AudioRow`) tables.
+- **Hide promo banner** removes the large promotional hero on library pages before first paint while keeping navigation intact.
+- **Dim processed rows** subtly fades tracks you already ran through the download flow (4–5★ favorites stay bright).
+- **Right-click context menu** lets you copy track details, export visible Music/SFX tracks to CSV, or open the **Rankings Side Panel**.
+- **CSV export** outputs `Title`, `Artist`, `Kind`, `Duration`, `Artlist URL`, `YouTube URL`, `Rating`, `Tags`, and `Note` (with spreadsheet formula-injection protection).
 
-### Track rankings
+### Track rankings, tags, notes & Side Panel
 
-Hover a track and press `1`–`5` to rate it, or `0` to clear the rating. A floating star bar also appears under the hovered row if you prefer clicking. Ratings are keyed by the normalized title and artist, so the same song keeps its rating across library pages.
+Hover any Music or SFX row and press `1`–`5` to rate it (`0` to clear), or click the floating star HUD under the hovered row. Click `✎` (or press `t`) to attach comma-separated tags and a note. Ratings are keyed by normalized title and artist, so the same track keeps its stars, tags, and note across library lists, search results, and detail pages.
 
-- 4–5 star rows get a warm accent and stay readable even when they are in processed history.
-- Press `f` to toggle **Focus favorites**: rows below 4 stars (and unrated rows) dim, so your top picks jump out. It does not reorder or hide rows.
-- The star icon in the popup opens the **Rankings** page. There you can search, sort by rating or date, filter by star count, edit or remove ratings, open tracks on Artlist, export a rankings CSV, and clear everything.
-- Ratings are local to `chrome.storage.local`. They work with the download flow disabled.
-- The popup and Settings both have a Track rankings switch.
+- Rated rows display a warm accent bar and a compact badge (`★★★★★ · intro, reel`).
+- Open **Rankings** either in a full tab or docked in Chrome's **Side Panel** right alongside Artlist while you browse.
+- Filter rankings by text (title, artist, tag, or note), star rating, tag dropdown / clickable `#tag` chips, and type (`All`, `Music`, `SFX`).
+- Export rankings as CSV or JSON, and import/merge rankings JSON directly from the Rankings view.
 
 ### Download flow
 
-Turn on `Enable Downloader` in the popup or in Settings. Pick one of three modes:
+Turn on **Enable Downloader** in the popup or Settings and choose one of three modes:
 
 | Mode | What happens |
 |---|---|
-| Auto | The extension checks match memory, searches YouTube when needed, scores the results, and opens the converter if the best match clears the threshold. The duration veto can send the track to the picker instead. |
-| Ask me | The picker shows up to five results with thumbnail, channel, duration, and score. The extension saves the video you choose to match memory. |
-| Search only | The extension opens the YouTube search page and stops there. It does not open the converter. |
+| **Auto** | Checks match memory, searches YouTube when needed, boosts official `"Artist - Topic"` and verified artist uploads, and opens your converter URL if the best candidate clears the match threshold and duration veto. |
+| **Ask me** | Opens an accessible top-layer popover picker showing up to 5 candidates with `1`–`5` keyboard shortcuts, arrow-key navigation, `Topic` / `Used before` badges, thumbnail, duration, match score, and a `↗` button to preview on YouTube before converting. Your pick is saved to match memory. |
+| **Search only** | Opens the YouTube search results page and stops there. |
 
-The match threshold sets the minimum score for an automatic pick. The default is 42%, and the popup slider covers 30% to 75%. Duration veto compares the Artlist track length with the YouTube video and opens the picker when the difference exceeds the tolerance, which is 15 seconds by default. You can change both values in Settings.
+While the download flow is enabled:
 
-Match memory stores up to 500 title and artist pairs. In Auto mode, a remembered track opens the converter without another search. The picker marks the video you used before.
+- `d` runs the download flow for the hovered row (or active detail page).
+- `q` toggles **Queue mode**: click multiple rows to queue them, then click **Process** to batch-run them through the Auto flow with progress and a stop button.
+- `Alt` + click always opens the candidate picker for that track.
+- `Shift` + click opens only the YouTube search for that track.
+- `Ctrl`/`Cmd` + click resolves and copies the YouTube URL to your clipboard without opening a tab.
+- **Converter URL template**: defaults to `https://y2mate.gs/#{videoId}/mp3`, and can be customized in **Settings → Download flow** using `{videoId}`, `{youtubeUrl}` (URL-encoded), or `{rawYoutubeUrl}` (`http://` and `https://` only).
 
-These actions work while the flow is on:
+### Localization (English & Español)
 
-- `d` starts the download action for the row under the cursor.
-- `q` starts queue mode. Click rows to select them, press Process, and the queue processes each track through the Auto flow. If a track has no confident match or fails the duration check, it opens the YouTube search instead. The final message reports how many tracks opened in the converter, went to search, or failed. You can stop the queue from the floating bar.
-- If a track is already in the processed history, the download action shows a warning.
-- Alt+click forces the picker for one track.
-- Shift+click opens only the YouTube search for that track.
-- Ctrl+click or Cmd+click copies the resolved YouTube URL without opening a tab.
-- The download button shows a tooltip with the detected title and artist.
+Artlist Toolbox supports **English** and **Español** out of the box across the popup, Settings, Rankings / Side Panel, context menus, errors, and in-page overlays. By default (`Auto`), it follows your browser UI language; you can override it anytime in **Settings → Page & library → Language**.
 
-Open in background applies to all three modes. The page still opens, but the browser does not focus the new tab. The `d` and `q` shortcuts also follow the keyboard shortcuts setting, which is on by default.
-
-### Settings
-
-Open the settings page with the gear icon in the popup, or from the extension entry in `chrome://extensions`.
+### Settings & Full Backup
 
 | Section | What it controls |
 |---|---|
-| Download flow | Master switch, default mode, match threshold, background opening, duration veto, and tolerance. |
-| Keywords | Penalized and preferred search terms, one per line, with buttons to restore the defaults. |
-| Match memory | The memory switch and the list of remembered videos, with individual and bulk delete. |
-| Processed history | Tracks that already went through the flow, with individual and bulk delete. |
-| Page and library | Promo banner, compact rows, processed dimming, and keyboard shortcuts. |
-| Track rankings | Enable or disable ratings, see the ranked count, open the Rankings page, and clear all rankings. |
-| Advanced | The optional CSV button in the popup. |
-| Modifier clicks and menus | A reference for the modifier clicks and the context-menu actions. |
-| Stats | Download total, the 14-day breakdown, and a reset button. |
-| Config | JSON export and import, recent-downloads CSV export, and restoring the default settings. |
-| Diagnostics | Version, storage usage, counters, and a copy-to-clipboard report. |
+| **Download flow** | Master switch, default mode, match threshold, background tab opening, duration veto/tolerance, and custom Converter URL template. |
+| **Keywords** | Penalized and preferred whole-word terms, one per line, with one-click default reset. |
+| **Match memory** | Toggle and inspect up to 500 remembered track → YouTube video mappings. |
+| **Processed history** | View and manage up to 1,000 processed tracks. |
+| **Page & library** | Language (`Auto`, `English`, `Español`), promo banner switch, compact rows, processed dimming, and keyboard shortcuts. |
+| **Track rankings** | Enable/disable rankings, inspect top rated tracks, open the Rankings tab or Side Panel, and clear all rankings. |
+| **Advanced** | Optional CSV export button inside the toolbar popup. |
+| **Stats** | Total downloads, 14-day daily breakdown, and reset. |
+| **Backup & Config** | Full JSON backup export (settings + rankings + tags/notes + match memory + processed history + stats), settings-only JSON export, Merge-or-Replace JSON import (backward-compatible with v0.7.0 config files), recent downloads CSV export, and default settings restore. |
+| **Diagnostics** | Extension version, active locale, `chrome.storage.local` byte usage, item counts, and copy-to-clipboard summary. |
 
 ### Permissions and data
 
 | Permission | Why the extension needs it |
 |---|---|
-| `tabs` | Opens the YouTube and y2mate tabs, and sends messages to Artlist tabs. |
-| `storage` | Keeps settings, match memory, processed history, track rankings, recent downloads, and stats in `chrome.storage.local`. |
-| `contextMenus` | Adds the copy and CSV actions to the right-click menu. |
-| `https://artlist.io/*`, `https://*.artlist.io/*` | Reads track details and applies the page tools. |
-| `https://www.youtube.com/*`, `https://youtube.com/*` | Requests YouTube search pages to score video candidates. |
-| `https://y2mate.gs/*` | Opens the converter page for the selected video. |
+| `storage` | Stores settings, rankings (stars, tags, notes), match memory, processed history, recent downloads, and stats locally in `chrome.storage.local`. |
+| `contextMenus` | Adds Copy track info, Export visible tracks (CSV), and Open Rankings side panel to Artlist's right-click menu. |
+| `sidePanel` | Lets you dock the Rankings & Notes workspace beside Artlist in Chrome's Side Panel. |
+| `https://artlist.io/*`, `https://*.artlist.io/*` | Reads visible track metadata and renders in-page library tools on Artlist pages. |
+| `https://www.youtube.com/*`, `https://youtube.com/*` | Fetches YouTube search results in the background service worker when the download flow is used. |
 
-The extension keeps its data in `chrome.storage.local`. It has no account system, analytics, or project-owned server. When you use the download flow, your browser requests YouTube search pages and opens y2mate.gs. Those sites receive normal request data under their own terms and privacy policies. The project does not control y2mate.gs.
+All data stays local in `chrome.storage.local` — no account system, telemetry, analytics, or external project server.
 
 ## Development
 
-Node.js 20 or newer is required for the repository scripts. The extension itself has no runtime dependencies.
+Node.js 20 or newer is required for the repository test and packaging scripts. The extension itself has zero runtime dependencies.
 
 ```bash
-npm test      # Unit tests for matching, toolbox helpers, rankings, and YouTube parsing
-npm run check # Syntax checks and manifest file validation
+npm test      # Unit tests for matching, rankings, YouTube parsing, DOM extraction, backup, CSV, and i18n
+npm run check # Syntax checks across all scripts and Manifest V3 validation
 npm run zip   # Builds dist/ArtlistToolbox-v<version>.zip
 ```
 
-GitHub Actions runs `npm run check` and `npm test` on pushes to `main` and on pull requests. A pushed `v*` tag runs the release workflow, builds the zip, and attaches it to a GitHub Release.
-
 ## Contributing
 
-Open an issue for a bug or a feature request. Pull requests should pass `npm test` and `npm run check`, and they should stay focused on one change. Describe the behavior before and after the change.
+Open an issue for a bug or a feature request. Pull requests should pass `npm test` and `npm run check`, and stay focused on a clear change.
 
-If this project looks useful to you, a ⭐ would mean a lot and it helps others discover it too. :)
-
+If this project is useful to you, a ⭐ means a lot and helps other editors discover it! :)
 If you want to sponsor my projects for creatives, [contact me](mailto:ciroaleguia@gmail.com).
 
 ## License
@@ -149,8 +137,8 @@ MIT. See [LICENSE](LICENSE).
 
 ## Disclaimer
 
-Artlist Toolbox is not affiliated with Artlist, YouTube, or y2mate. The extension does not host, convert, or download audio itself. It opens pages from those services. You are responsible for following their terms and for holding the rights to any track you download. Use it only with content you are allowed to use.
+Artlist Toolbox is not affiliated with Artlist, YouTube, or y2mate. The extension does not host, convert, or download audio itself; it opens pages from third-party services configured by the user. You are responsible for following their terms and holding the appropriate rights or license for any media you use.
 
 ## Author
 
-Ciro Leguía. GitHub: [@ciroleguia](https://github.com/ciroleguia).
+Ciro Leguía — GitHub: [@ciroleguia](https://github.com/ciroleguia)
