@@ -236,10 +236,11 @@
 }
 
 /*
- * "Hide promo banner" page tweak.
+ * "Hide promo banner" page tweak:
+ * Safely targets the hero banner on Music (/royalty-free-music) and SFX (/sfx)
+ * catalogs without matching ancestor wrappers that contain the catalog tables.
  */
-html[data-artlist-toolbox-hide-hero] #app-root div[class~="flex-col"] > div:has([data-testid="GuestHeroActions"]),
-html[data-artlist-toolbox-hide-hero] #app-root div[class~="flex-col"] > div:has(+ [data-testid="Music"]),
+html[data-artlist-toolbox-hide-hero] #app-root div:has(+ [data-testid="Music"]),
 html[data-artlist-toolbox-hide-hero] #app-root [data-testid="HeroSection"] {
   display: none !important;
 }
